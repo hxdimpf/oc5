@@ -165,7 +165,7 @@
         <div class="oc-form-section">
             <div class="oc-form-section-header">{{ 'Cache attributes' }}</div>
             <div class="oc-form-section-body">
-                <input type="hidden" id="cache_attribs" name="cache_attribs" value="{{ form.selected_attribs | join(';') }}">
+                <input type="hidden" id="cache_attribs" name="cache_attribs" value="{{ form.selected_attribs }}">
                 <div id="attrPicker">
                     {% set currentGroup = null %}
                     {% for attr in attrs %}
