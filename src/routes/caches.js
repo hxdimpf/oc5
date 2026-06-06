@@ -89,6 +89,32 @@ module.exports = {
     });
   },
 
+  newCacheSubmit: async function (req, res) {
+    const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint } = req.body;
+    // Parse coords like "N52 22.091 E009 37.506"
+    const m = (coords || '').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+    if (!m) return res.status(400).send('Invalid coordinates');
+    let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
+    let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
+    if (m[1] === 'S') lat = -lat;
+    if (m[4] === 'W') lon = -lon;
+
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    await pool.query(
+      `INSERT INTO caches (user_id, name, longitude, latitude, type, status, country, date_hidden, size, difficulty, terrain, node)
+       VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 4)`,
+      [req.user.id, name, lon, lat, type || 1, country || 'DE', date_hidden || now.slice(0,10), size || 1, difficulty || 2, terrain || 2]
+    );
+    const id = (await pool.query('SELECT LAST_INSERT_ID() as id'))[0].id;
+    await pool.query(
+      `INSERT INTO cache_desc (cache_id, language, \`desc\`, hint, short_desc, last_modified, node)
+       VALUES (?, 'EN', ?, ?, ?, ?, 4)`,
+      [id, desc || '', hint || '', short_desc || '', now]
+    );
+    const [wp] = await pool.query('SELECT wp_oc FROM caches WHERE cache_id=?', [id]);
+    res.redirect(`/cache/${wp.wp_oc}`);
+  },
+
   detail: (req, res) => {
     res.render('caches/detail.njk', { wp: req.params.wp.toUpperCase() });
   },

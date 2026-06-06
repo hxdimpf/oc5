@@ -43,6 +43,7 @@ app.get('/livemap', (req, res) => res.render('maps/livemap.njk'));
 const caches = require('./src/routes/caches');
 app.get('/caches', caches.searchPage);
 app.get('/cache/new', caches.newCachePage);
+app.post('/cache/new', caches.newCacheSubmit);
 app.get('/cache/:wp', caches.detail);
 app.get('/api/caches/search', caches.apiSearch);
 app.get('/api/caches/waypoints', caches.waypoints);
