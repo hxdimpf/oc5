@@ -58,7 +58,7 @@
 
     <h4 class="mb-3">{% if is_edit %}{{ 'Edit cache'  }}{% else %}{{ 'Submit a new cache' }}{% endif %}</h4>
 
-    {% if errors and (not editCache) %}
+    {% if errors._general %}
     <div class="alert alert-danger py-2">
         {% if errors._general %}
             {{ errors._general }}
