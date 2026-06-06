@@ -108,7 +108,7 @@ module.exports = {
       user_coords: editNote && editNote.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
       waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({id:w.id,type:w.subtype,coords:decimalToDm(Number(w.latitude),Number(w.longitude)),desc:w.description}))) : '[]',
       tos: true,
-      selected_attribs: editAttribs?.join(';') || '',
+      selected_attribs: editAttribs?.length ? editAttribs : [],
     } : {};
 
     res.render('caches/new.njk', {
