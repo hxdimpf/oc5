@@ -316,6 +316,7 @@ module.exports = {
     const data = {
       referenceCode: c.wp_oc,
       name: c.name,
+      shortName: (c.name || '').length > 25 ? (c.name || '').slice(0, 25) + '…' : (c.name || ''),
       geocacheType: { id: c.type_id, name: c.type_name, svgName: c.svg_name },
       geocacheSize: { id: c.size_id, name: c.size_name },
       difficulty: Number(c.difficulty),
@@ -336,6 +337,7 @@ module.exports = {
       wayLength: Number(c.way_length),
       country: c.country,
       wpGc: c.wp_gc || '',
+      ownerCode: c.owner_name || '',
       owner: {
         id: c.owner_id,
         username: c.owner_name,
@@ -356,7 +358,7 @@ module.exports = {
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
       sanitizedDescription: desc[0]?.desc || '',
       shortDesc: desc[0]?.short_desc || '',
-      waypoints: wpts.map(w => {
+      additionalWaypoints: (wpts || []).map(w => {
         const lat = Number(w.latitude), lon = Number(w.longitude);
         const subtypeToPng = {1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'};
         return {
@@ -399,7 +401,9 @@ module.exports = {
       postedCoordsFmt: decimalToDm(Number(c.latitude), Number(c.longitude)),
       correctedCoordsFmt: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
       placedDateFmt: fmtDate(c.date_hidden),
+      publishedDate: fmtDate(c.date_created),
       publishedDateFmt: fmtDate(c.date_created),
+      correctedCoordinates: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
       timeRequired: Number(c.search_time) > 0 ? fmtTime(Number(c.search_time)) : '',
       isOcOnly: !!c.is_oc_only,
       isArchived: c.status_id === 3,
@@ -410,7 +414,7 @@ module.exports = {
       isFavorited: false,
       favoritePoints: Number(c.rating_count),
       pcn: noteRows?.[0]?.description || '',
-      additionalWaypoints: wpts?.length || 0,
+      additionalWaypoints: wpts || [],
       listingOutdated: false,
       needsMaintenance: false,
       requiresPasswd: !!c.logpw,
