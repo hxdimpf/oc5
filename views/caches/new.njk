@@ -26,7 +26,7 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Size</label>
-            <select name="size" class="form-select">
+            <select name="size" id="cacheSize" class="form-select">
                 <option value="">--</option>
                 {% for s in sizes %}
                 <option value="{{ s.id }}" {% if editCache and editCache.size == s.id %}selected{% endif %}>{{ s.name }}</option>
