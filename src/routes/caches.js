@@ -1,4 +1,5 @@
 const pool = require('../db');
+const sanitizeDescription = null; // lazy-loaded from gcxm
 
 function decimalToDm(lat, lon) {
   const ns = lat < 0 ? 'S' : 'N', ew = lon < 0 ? 'W' : 'E';
@@ -356,7 +357,7 @@ module.exports = {
       } : null,
       hints: desc[0]?.hint || '',
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
-      sanitizedDescription: (desc[0]?.short_desc ? `<p><b>${desc[0].short_desc}</b></p>` : '') + (desc[0]?.desc || ''),
+      sanitizedDescription: (() => { try { const { sanitizeDescription } = require('../sanitize'); return sanitizeDescription(desc[0]?.short_desc || '', desc[0]?.desc || '', c.wp_oc); } catch { return (desc[0]?.desc || ''); } })(),
       shortDesc: desc[0]?.short_desc || '',
       additionalWaypoints: (wpts || []).map(w => {
         const lat = Number(w.latitude), lon = Number(w.longitude);
