@@ -1,0 +1,25 @@
+{% extends "base.njk" %}
+{% block title %}Search Caches - Opencaching.de{% endblock %}
+{% block data_page %}searchcaches{% endblock %}
+{% block page_content %}
+<div class="container mt-4">
+    <h2>Search Caches</h2>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <input type="text" id="fq" class="form-control" placeholder="e.g. Forest, OC12345, username">
+        </div>
+        <div class="col-md-2">
+            <select id="typeFilter" class="form-select">
+                <option value="0">All Types</option>
+                {% for t in types %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button id="searchBtn" class="btn btn-primary">Search</button>
+        </div>
+    </div>
+    <div id="resultsTable"></div>
+</div>
+<link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
+<link rel="stylesheet" href="/css/tabulator_oc.css">
+{% endblock %}

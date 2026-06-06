@@ -1,0 +1,83 @@
+{% extends "base.njk" %}
+{% block title %}{% if editCache %}Edit{% else %}New{% endif %} Cache - Opencaching.de{% endblock %}
+{% block data_page %}newcache{% endblock %}
+{% block data_map_js %}true{% endblock %}
+{% block page_content %}
+<div class="container mt-4" id="newCacheForm">
+    <h2>{% if editCache %}Edit {{ editCache.wp_oc }}{% else %}New Cache{% endif %}</h2>
+    <form method="post" class="row g-3">
+        <div class="col-md-8">
+            <label class="form-label">Cache Name</label>
+            <input type="text" name="name" class="form-control" value="{{ editCache.name or '' }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Type</label>
+            <select name="type" class="form-select">
+                <option value="">--</option>
+                {% for t in types %}
+                <option value="{{ t.id }}" {% if editCache and editCache.type == t.id %}selected{% endif %}>{{ t.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Size</label>
+            <select name="size" class="form-select">
+                <option value="">--</option>
+                {% for s in sizes %}
+                <option value="{{ s.id }}" {% if editCache and editCache.size == s.id %}selected{% endif %}>{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Coordinates (DM format)</label>
+            <input type="text" name="coords" class="form-control" placeholder="N51 02.345 E009 43.210" id="coordInput">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Country</label>
+            <select name="country" class="form-select">
+                {% for c in countries %}
+                <option value="{{ c.short }}" {% if (editCache and editCache.country == c.short) or (not editCache and c.short == 'DE') %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Difficulty</label>
+            <select name="difficulty" class="form-select">
+                <option value="">--</option>
+                {% for i in range(2, 10) %}
+                <option value="{{ i }}" {% if editCache and editCache.difficulty == i %}selected{% endif %}>{{ (i / 2) | round(1) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Terrain</label>
+            <select name="terrain" class="form-select">
+                <option value="">--</option>
+                {% for i in range(2, 10) %}
+                <option value="{{ i }}" {% if editCache and editCache.terrain == i %}selected{% endif %}>{{ (i / 2) | round(1) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date Hidden</label>
+            <input type="date" name="date_hidden" class="form-control" value="{{ editCache.date_hidden or '' }}">
+        </div>
+        <div class="col-12">
+            <label class="form-label">Short Description</label>
+            <input type="text" name="short_desc" class="form-control" value="{{ editDesc.short_desc or '' }}">
+        </div>
+        <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea name="desc" class="form-control" rows="8">{{ editDesc.desc or '' }}</textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Hint</label>
+            <input type="text" name="hint" class="form-control" value="{{ editDesc.hint or '' }}">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-success">{% if editCache %}Save Changes{% else %}Create Cache{% endif %}</button>
+        </div>
+    </form>
+    <div id="map" style="width:100%; height:300px; margin-top:20px;"></div>
+</div>
+{% endblock %}

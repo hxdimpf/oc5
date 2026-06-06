@@ -1,0 +1,20 @@
+{% extends "base.njk" %}
+{% block title %}Login - Opencaching.de{% endblock %}
+{% block page_content %}
+<div class="container mt-5" style="max-width:400px;">
+    <h2 class="h3 mb-3">OC Backend | Login</h2>
+    <form method="post">
+        <div class="form-group mb-3">
+            <label for="inputUsername" class="sr-only">Username</label>
+            <input type="text" name="username" id="inputUsername" class="form-control"
+                   placeholder="Username" required autofocus>
+        </div>
+        <div class="form-group mb-3">
+            <label for="inputPassword" class="sr-only">Password</label>
+            <input type="password" name="password" id="inputPassword" class="form-control"
+                   placeholder="Password" required>
+        </div>
+        <button class="btn btn-block btn-primary" type="submit">Sign in</button>
+    </form>
+</div>
+{% endblock %}

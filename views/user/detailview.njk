@@ -1,0 +1,19 @@
+{% extends "base.njk" %}
+{% block title %}{{ profile.username }} - Opencaching.de{% endblock %}
+{% block page_content %}
+<div class="container mt-4">
+    {% if profile %}
+        <h2>{{ profile.username }}</h2>
+        <ul>
+            <li>User ID: {{ profile.user_id }}</li>
+            <li>Country: {{ profile.country }}</li>
+            <li>Joined: {{ profile.date_created }}</li>
+            <li>Finds: {{ profile.findCount or 0 }}</li>
+            <li>Hidden: {{ profile.hideCount or 0 }}</li>
+            {% if profile.description %}<li>{{ profile.description }}</li>{% endif %}
+        </ul>
+    {% else %}
+        <p>User not found.</p>
+    {% endif %}
+</div>
+{% endblock %}

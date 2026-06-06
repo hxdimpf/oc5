@@ -1,0 +1,24 @@
+{% extends "base.njk" %}
+{% block title %}Geocaching mit Opencaching.de{% endblock %}
+{% block page_content %}
+<div class="container mt-5">
+    <h1>Welcome to Opencaching.de</h1>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card"><div class="card-body text-center">
+                <h3>{{ cacheCount }}</h3><p>Active Caches</p>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card"><div class="card-body text-center">
+                <h3>{{ logCount }}</h3><p>Logs</p>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card"><div class="card-body text-center">
+                <h3>{{ userCount }}</h3><p>Users</p>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.njk" %}
+{% block title %}{{ wp }} - Opencaching.de{% endblock %}
+{% block data_page %}cache{% endblock %}
+{% block data_map_js %}true{% endblock %}
+{% block page_content %}
+<div class="container mt-4">
+    <div id="cacheDetail" data-wp="{{ wp }}"></div>
+</div>
+{% endblock %}

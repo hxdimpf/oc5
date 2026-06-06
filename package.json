@@ -1,0 +1,17 @@
+{
+  "name": "oc5",
+  "version": "0.1.0",
+  "private": true,
+  "description": "opencaching.de — Node.js/Express frontend",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "nunjucks": "^3.2.4",
+    "mariadb": "^3.4.1",
+    "dotenv": "^16.5.0"
+  }
+}
