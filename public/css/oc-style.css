@@ -147,6 +147,9 @@ body {
 main.content {
   padding: 1rem 1.25rem;
 }
+#mapRoot { height: 300px; width: 100%; }
+#mapRoot.page-map-active { height: calc(100vh - var(--oc-navbar-height)) !important; }
+
 body[data-page="livemap"] main.content {
   padding: 0;
 }
