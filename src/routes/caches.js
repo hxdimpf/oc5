@@ -330,8 +330,8 @@ module.exports = {
       listingLon: Number(c.longitude),
       dateHidden: fmtDate(c.date_hidden),
       dateCreated: fmtDate(c.date_created),
-      logpw: !!c.logpw,
-      cacheLogpw: c.cache_logpw || '',
+      logpw: c.cache_logpw || (noteRows?.[0]?.logpw) || '',
+      requiresPasswd: !!(c.logpw),
       searchTime: Number(c.search_time),
       wayLength: Number(c.way_length),
       country: c.country,
@@ -355,15 +355,22 @@ module.exports = {
       hints: desc[0]?.hint || '',
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
       sanitizedDescription: desc[0]?.desc || '',
-      waypoints: wpts.map(w => ({
-        latitude: Number(w.latitude),
-        longitude: Number(w.longitude),
-        description: w.description || '',
-        typeId: w.type_id,
-        type: w.type_name || '',
-        name: w.type_name || 'Waypoint',
-        type_name: w.type_name || '',
-      })),
+      shortDesc: desc[0]?.short_desc || '',
+      waypoints: wpts.map(w => {
+        const lat = Number(w.latitude), lon = Number(w.longitude);
+        const subtypeToPng = {1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'};
+        return {
+          latitude: lat, longitude: lon,
+          description: w.description || '',
+          typeId: w.type_id,
+          type: w.type_name || '',
+          name: w.type_name || 'Waypoint',
+          type_name: w.type_name || '',
+          icon: subtypeToPng[w.type_id] ? `/images/waypoints/${subtypeToPng[w.type_id]}` : '',
+          myCoords: decimalToDm(lat, lon),
+          prefix: (w.type_name || 'WP').substring(0, 2).toUpperCase(),
+        };
+      }),
       attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/images/attributes/${a.icon}.png` : '' })),
       logs: logs.map(l => ({
         id: l.id, type: l.type, date: l.date, text: l.text || '',
