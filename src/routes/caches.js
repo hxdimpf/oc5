@@ -44,12 +44,12 @@ module.exports = {
          ORDER BY name`, [locale]),
     ]);
 
-    const attrs = await pool.query(
+    const attrs = (await pool.query(
       `SELECT ca.id, ca.name, ca.icon_undef, ca.icon_large, ca.group_id, ag.name AS group_name
        FROM cache_attrib ca JOIN attribute_groups ag ON ca.group_id = ag.id
        WHERE NOT IFNULL(ca.hidden, 0) AND ca.selectable != 0
        ORDER BY ag.category_id, ca.group_id, ca.id`
-    );
+    )).map(a => ({ ...a, icon_undef: a.icon_undef?.split('/').pop() || '', icon_large: a.icon_large?.split('/').pop() || '' }));
 
     const wptTypes = await pool.query('SELECT id, name FROM coordinates_type ORDER BY id');
     const languages = await pool.query(
