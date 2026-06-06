@@ -5,8 +5,8 @@
 // Handles URL rewriting for images and links to work with the proxy.
 //
 
-const { parse } = require('node-html-parser');
-const yabbcode = require('ya-bbcode');
+import { parse } from 'node-html-parser';
+import yabbcode from 'ya-bbcode';
 
 //----------------------------------------------------------------------------
 // BBCode parser setup
@@ -198,7 +198,7 @@ function sanitizeDescription(shortDescription, longDescription, referenceCode) {
 //----------------------------------------------------------------------------
 // Exports
 
-module.exports = {
+export {
   containsBBCode,
   containsHtml,
   sanitizeHtml,

@@ -1,76 +1,56 @@
-const express = require('express');
-const nunjucks = require('nunjucks');
-const path = require('path');
-require('dotenv').config();
+import express from 'express';
+import nunjucks from 'nunjucks';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import 'dotenv/config';
 
-const auth = require('./src/auth');
+import auth from './src/auth.js';
+import * as indexRoute from './src/routes/index.js';
+import * as searchRoute from './src/routes/search.js';
+import * as userRoute from './src/routes/user.js';
+import * as cachesRoute from './src/routes/caches.js';
+import { ocGetGeocodeCity } from './src/routes/geocode.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Parse form data
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// Static assets
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Nunjucks setup
 nunjucks.configure(path.join(__dirname, 'views'), {
-  autoescape: true,
-  express: app,
-  noCache: true,
+  autoescape: true, express: app, noCache: true,
 });
 
-// Auth — hardcoded for now
 app.use(auth);
+app.use((req, res, next) => { res.locals.user = req.user; next(); });
 
-// Make user available in all templates
-app.use((req, res, next) => {
-  res.locals.user = req.user;
-  next();
-});
+// ── Routes ──────────────────────────────────────────────────────────
 
-// ── Routes ─────────────────────────────────────────────────────────
-
-app.get('/', require('./src/routes/index'));
-
+app.get('/', indexRoute.home);
 app.get('/login', (req, res) => res.render('login.njk'));
 app.post('/login', (req, res) => res.redirect('/'));
-
+app.get('/logout', (req, res) => { res.clearCookie('ocdevelopmentdata'); res.redirect('/login'); });
 app.get('/livemap', (req, res) => res.render('maps/livemap.njk'));
 
-const caches = require('./src/routes/caches');
-app.get('/caches', caches.searchPage);
-app.get('/cache/new', caches.newCachePage);
-app.post('/cache/new', caches.newCacheSubmit);
-app.get('/cache/:wp', caches.detail);
-app.get('/api/caches/search', caches.apiSearch);
-app.get('/api/caches/waypoints', caches.waypoints);
-app.get('/api/cache/:wp', caches.apiDetail);
-app.post('/api/cache/:wp/note', caches.saveNote);
-app.post('/api/cache/:wp/log', caches.createLog);
+app.get('/caches', cachesRoute.searchPage);
+app.get('/cache/new', cachesRoute.newCachePage);
+app.post('/cache/new', cachesRoute.newCacheSubmit);
+app.get('/cache/:wp', cachesRoute.detail);
+app.get('/api/caches/search', cachesRoute.apiSearch);
+app.get('/api/caches/waypoints', cachesRoute.waypoints);
+app.get('/api/cache/:wp', cachesRoute.apiDetail);
+app.post('/api/cache/:wp/note', cachesRoute.saveNote);
+app.post('/api/cache/:wp/log', cachesRoute.createLog);
 
-app.get('/api/geocode/city', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  if (!q) return res.json([]);
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=10&q=${encodeURIComponent(q)}`;
-  try {
-    const data = await fetch(url, { headers: { 'User-Agent': 'oc5/1.0' } });
-    res.json(await data.json());
-  } catch { res.json([]); }
-});
+app.get('/api/caches/live', searchRoute.liveCaches);
+app.get('/api/geocode/city', ocGetGeocodeCity);
 
-const search = require('./src/routes/search');
-app.get('/api/caches/live', search.liveCaches);
-
-const user = require('./src/routes/user');
-app.get('/user', user.searchPage);
-app.get('/api/users/search', user.apiSearch);
-app.get('/user/profile/:id', user.profile);
+app.get('/user', (req, res) => res.render('user/search.njk'));
+app.get('/api/users/search', userRoute.apiSearch);
+app.get('/user/profile/:id', userRoute.profile);
 
 // ── Start ──────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`oc5 running on http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`oc5 running on http://localhost:${PORT}`));
