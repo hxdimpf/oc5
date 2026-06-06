@@ -2,6 +2,15 @@
 {% block title %}{% if editCache %}Edit{% else %}New{% endif %} Cache - Opencaching.de{% endblock %}
 {% block data_page %}newcache{% endblock %}
 {% block data_map_js %}true{% endblock %}
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/vendor/leaflet-draw/leaflet.draw.css">
+<link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.css">
+<link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.Default.css">
+<link rel="stylesheet" href="/css/map.css">
+{% endblock %}
+
 {% block after_body_start %}
 <script>
 window.uniCacheWP = [];
