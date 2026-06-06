@@ -3,7 +3,12 @@
 {% block data_page %}newcache{% endblock %}
 {% block data_map_js %}true{% endblock %}
 {% block after_body_start %}
-<script>window.uniCacheWP = [];</script>
+<script>
+window.uniCacheWP = [];
+window.lat = {{ editCache.latitude or 52.376 }};
+window.lon = {{ editCache.longitude or 9.732 }};
+window.defaultZoom = 14;
+</script>
 {% endblock %}
 {% block page_content %}
 <div class="container mt-4" id="newCacheForm">
