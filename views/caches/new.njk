@@ -9,6 +9,7 @@
 <div class="container mt-4" id="newCacheForm">
     <h2>{% if editCache %}Edit {{ editCache.wp_oc }}{% else %}New Cache{% endif %}</h2>
     <form method="post" class="row g-3">
+        {% if editCache %}<input type="hidden" name="edit_id" value="{{ editCache.cache_id }}">{% endif %}
         <div class="col-md-8">
             <label class="form-label">Cache Name</label>
             <input type="text" name="name" class="form-control" value="{{ editCache.name or '' }}">
@@ -63,7 +64,7 @@
         </div>
         <div class="col-md-3">
             <label class="form-label">Date Hidden</label>
-            <input type="date" name="date_hidden" class="form-control" value="{{ editCache.date_hidden | default('') | truncate(10, true, '') }}">
+            <input type="date" name="date_hidden" class="form-control" value="{{ (editCache.date_hidden or '')[:10] }}">
         </div>
         <div class="col-12">
             <label class="form-label">Short Description</label>

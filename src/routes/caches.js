@@ -96,29 +96,51 @@ module.exports = {
   },
 
   newCacheSubmit: async function (req, res) {
-    const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint } = req.body;
-    // Parse coords like "N52 22.091 E009 37.506"
-    const m = (coords || '').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-    if (!m) return res.status(400).send('Invalid coordinates');
-    let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
-    let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
-    if (m[1] === 'S') lat = -lat;
-    if (m[4] === 'W') lon = -lon;
-
+    const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, edit_id } = req.body;
+    const editId = parseInt(edit_id) || 0;
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    await pool.query(
-      `INSERT INTO caches (user_id, name, longitude, latitude, type, status, country, date_hidden, size, difficulty, terrain, node)
-       VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 4)`,
-      [req.user.id, name, lon, lat, type || 1, country || 'DE', date_hidden || now.slice(0,10), size || 1, difficulty || 2, terrain || 2]
-    );
-    const id = (await pool.query('SELECT LAST_INSERT_ID() as id'))[0].id;
-    await pool.query(
-      `INSERT INTO cache_desc (cache_id, language, \`desc\`, hint, short_desc, last_modified, node)
-       VALUES (?, 'EN', ?, ?, ?, ?, 4)`,
-      [id, desc || '', hint || '', short_desc || '', now]
-    );
-    const [wp] = await pool.query('SELECT wp_oc FROM caches WHERE cache_id=?', [id]);
-    res.redirect(`/cache/${wp.wp_oc}`);
+
+    let lat = null, lon = null;
+    if (coords && coords.trim()) {
+      const m = coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+      if (m) {
+        lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
+        lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
+        if (m[1] === 'S') lat = -lat;
+        if (m[4] === 'W') lon = -lon;
+      }
+    }
+
+    if (editId > 0) {
+      // Edit existing cache
+      const [existing] = await pool.query('SELECT user_id, wp_oc FROM caches WHERE cache_id=?', [editId]);
+      if (!existing || existing.user_id !== req.user.id) return res.status(403).send('Not authorized');
+      const fields = ['name', 'type', 'size', 'country', 'difficulty', 'terrain', 'logpw', 'search_time', 'way_length', 'wp_gc'];
+      const sets = [], vals = [];
+      for (const f of fields) if (req.body[f] !== undefined) { sets.push(`${f}=?`); vals.push(req.body[f]); }
+      if (lat !== null) { sets.push('latitude=?'); vals.push(lat); sets.push('longitude=?'); vals.push(lon); }
+      if (date_hidden) { sets.push('date_hidden=?'); vals.push(date_hidden); }
+      vals.push(editId);
+      if (sets.length) await pool.query(`UPDATE caches SET ${sets.join(',')} WHERE cache_id=?`, vals);
+      if (desc || hint || short_desc) {
+        await pool.query(`UPDATE cache_desc SET \`desc\`=?, hint=?, short_desc=?, last_modified=? WHERE cache_id=?`,
+          [desc||'', hint||'', short_desc||'', now, editId]);
+      }
+      res.redirect(`/cache/${existing.wp_oc}`);
+    } else {
+      // New cache — coordinates required
+      if (lat === null) return res.status(400).send('Invalid coordinates');
+      await pool.query(
+        `INSERT INTO caches (user_id, name, longitude, latitude, type, status, country, date_hidden, size, difficulty, terrain, node)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 4)`,
+        [req.user.id, name, lon, lat, type||1, country||'DE', date_hidden||now.slice(0,10), size||1, difficulty||2, terrain||2]
+      );
+      const id = (await pool.query('SELECT LAST_INSERT_ID() as id'))[0].id;
+      await pool.query(`INSERT INTO cache_desc (cache_id, language, \`desc\`, hint, short_desc, last_modified, node) VALUES (?,'EN',?,?,?,?,4)`,
+        [id, desc||'', hint||'', short_desc||'', now]);
+      const [wp] = await pool.query('SELECT wp_oc FROM caches WHERE cache_id=?', [id]);
+      res.redirect(`/cache/${wp.wp_oc}`);
+    }
   },
 
   detail: (req, res) => {
