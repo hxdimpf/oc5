@@ -60,7 +60,7 @@
 
     {% if errors and (not editCache) %}
     <div class="alert alert-danger py-2">
-        {% iferrors._general %}
+        {% if errors._general %}
             {{ errors._general }}
         {% else %}
             {{ 'Some errors occurred, please check the marked fields.' }}
@@ -79,34 +79,34 @@
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'Name' }} *</div>
                     <div class="oc-field-input">
-                        <input type="text" name="name" maxlength="60" class="form-control form-control-sm{% iferrors.name %} is-invalid{% endif %}" value="{{ form.name | e }}">
-                        {% iferrors.name %}<div class="error-msg">{{ errors.name }}</div>{% endif %}
+                        <input type="text" name="name" maxlength="60" class="form-control form-control-sm{% if errors.name %} is-invalid{% endif %}" value="{{ form.name | e }}">
+                        {% if errors.name %}<div class="error-msg">{{ errors.name }}</div>{% endif %}
                     </div>
                 </div>
 
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'Type' }} *</div>
                     <div class="oc-field-input">
-                        <select name="type" class="form-select form-select-sm{% iferrors.type %} is-invalid{% endif %}" id="cacheType">
+                        <select name="type" class="form-select form-select-sm{% if errors.type %} is-invalid{% endif %}" id="cacheType">
                             <option value="">{{ 'Please select' }}</option>
                             {% for t in types %}
                             <option value="{{ t.id }}"{% if form.type == t.id %} selected{% endif %}>{{ t.name }}</option>
                             {% endfor %}
                         </select>
-                        {% iferrors.type %}<div class="error-msg">{{ errors.type }}</div>{% endif %}
+                        {% if errors.type %}<div class="error-msg">{{ errors.type }}</div>{% endif %}
                     </div>
                 </div>
 
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'Size' }} *</div>
                     <div class="oc-field-input">
-                        <select name="size" class="form-select form-select-sm{% iferrors.size %} is-invalid{% endif %}" id="cacheSize">
+                        <select name="size" class="form-select form-select-sm{% if errors.size %} is-invalid{% endif %}" id="cacheSize">
                             <option value="">{{ 'Please select' }}</option>
                             {% for s in sizes %}
                             <option value="{{ s.id }}"{% if form.size == s.id %} selected{% endif %}>{{ s.name }}</option>
                             {% endfor %}
                         </select>
-                        {% iferrors.size %}<div class="error-msg">{{ errors.size }}</div>{% endif %}
+                        {% if errors.size %}<div class="error-msg">{{ errors.size }}</div>{% endif %}
                     </div>
                 </div>
 
@@ -114,20 +114,20 @@
                     <div class="oc-field-label">{{ 'Difficulty / Terrain' }} *</div>
                     <div class="oc-field-input">
                         {{ 'D' }}
-                        <select name="difficulty" class="form-select form-select-sm dt-select{% iferrors.dt %} is-invalid{% endif %}">
+                        <select name="difficulty" class="form-select form-select-sm dt-select{% if errors.dt %} is-invalid{% endif %}">
                             <option value="">–</option>
                             {% for v in range(2, 11) %}
                             <option value="{{ v }}"{% if form.difficulty == v %} selected{% endif %}>{{ (v / 2)  }}</option>
                             {% endfor %}
                         </select>
                         &nbsp;{{ 'T' }}
-                        <select name="terrain" class="form-select form-select-sm dt-select{% iferrors.dt %} is-invalid{% endif %}">
+                        <select name="terrain" class="form-select form-select-sm dt-select{% if errors.dt %} is-invalid{% endif %}">
                             <option value="">–</option>
                             {% for v in range(2, 11) %}
                             <option value="{{ v }}"{% if form.terrain == v %} selected{% endif %}>{{ (v / 2)  }}</option>
                             {% endfor %}
                         </select>
-                        {% iferrors.dt %}<div class="error-msg">{{ errors.dt }}</div>{% endif %}
+                        {% if errors.dt %}<div class="error-msg">{{ errors.dt }}</div>{% endif %}
                     </div>
                 </div>
 
@@ -142,10 +142,10 @@
                     <div class="oc-field-label">{{ 'Coordinates' }} *</div>
                     <div class="oc-field-input">
                         <div class="coords-input-wrap">
-                            <input type="text" name="coords" maxlength="30" class="form-control form-control-sm{% iferrors.coords %} is-invalid{% endif %}" style="width:280px" value="{{ form.coords | e }}" placeholder="{{ 'e.g. N51 02.345 E009 43.210 or 51.123,9.456' }}">
+                            <input type="text" name="coords" maxlength="30" class="form-control form-control-sm{% if errors.coords %} is-invalid{% endif %}" style="width:280px" value="{{ form.coords | e }}" placeholder="{{ 'e.g. N51 02.345 E009 43.210 or 51.123,9.456' }}">
                             <button type="button" class="map-pin-btn" title="{{ 'Pick on map' }}"><i class="fas fa-map-pin"></i></button>
                         </div>
-                        {% iferrors.coords %}<div class="error-msg">{{ errors.coords }}</div>{% endif %}
+                        {% if errors.coords %}<div class="error-msg">{{ errors.coords }}</div>{% endif %}
                     </div>
                 </div>
                 <div class="oc-field-row">
@@ -248,10 +248,10 @@
                     <div class="oc-field-label">{{ 'Corrected coordinates' }}</div>
                     <div class="oc-field-input">
                         <div class="coords-input-wrap">
-                            <input type="text" name="user_coords" maxlength="30" class="form-control form-control-sm{% iferrors.user_coords %} is-invalid{% endif %}" style="width:280px" value="{{ form.user_coords | e }}" placeholder="{{ 'e.g. N51 02.345 E009 43.210 or 51.123,9.456' }}">
+                            <input type="text" name="user_coords" maxlength="30" class="form-control form-control-sm{% if errors.user_coords %} is-invalid{% endif %}" style="width:280px" value="{{ form.user_coords | e }}" placeholder="{{ 'e.g. N51 02.345 E009 43.210 or 51.123,9.456' }}">
                             <button type="button" class="map-pin-btn" title="{{ 'Pick on map' }}"><i class="fas fa-map-pin"></i></button>
                         </div>
-                        {% iferrors.user_coords %}<div class="error-msg">{{ errors.user_coords }}</div>{% endif %}
+                        {% if errors.user_coords %}<div class="error-msg">{{ errors.user_coords }}</div>{% endif %}
                         <div class="text-secondary" style="font-size:0.8em; margin-top:3px">{{ 'Your own coordinates if the posted ones need correction (visible only to you)' }}</div>
                     </div>
                 </div>
@@ -266,7 +266,7 @@
                 <div id="waypointsContainer"></div>
                 <button type="button" id="addWaypointBtn" class="btn btn-sm btn-outline-secondary mt-2">+ {{ 'Add waypoint' }}</button>
                 <input type="hidden" name="waypoints_json" id="waypoints_json" value="{{ form.waypoints_json | e }}">
-                {% iferrors.waypoints %}<div class="error-msg mt-1">{{ errors.waypoints }}</div>{% endif %}
+                {% if errors.waypoints %}<div class="error-msg mt-1">{{ errors.waypoints }}</div>{% endif %}
             </div>
         </div>
 
@@ -295,10 +295,10 @@
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'Time effort (h)' }}</div>
                     <div class="oc-field-input d-flex align-items-center gap-3">
-                        <input type="text" name="search_time" maxlength="10" class="form-control form-control-sm{% iferrors.search_time %} is-invalid{% endif %}" style="width:90px" value="{{ form.search_time | e }}" placeholder="0">
+                        <input type="text" name="search_time" maxlength="10" class="form-control form-control-sm{% if errors.search_time %} is-invalid{% endif %}" style="width:90px" value="{{ form.search_time | e }}" placeholder="0">
                         <span class="text-secondary" style="font-size:0.85em">{{ 'Distance (km)' }}</span>
-                        <input type="text" name="way_length" maxlength="10" class="form-control form-control-sm{% iferrors.way_length %} is-invalid{% endif %}" style="width:90px" value="{{ form.way_length | e }}" placeholder="0">
-                        {% iferrors.search_time orerrors.way_length %}
+                        <input type="text" name="way_length" maxlength="10" class="form-control form-control-sm{% if errors.way_length %} is-invalid{% endif %}" style="width:90px" value="{{ form.way_length | e }}" placeholder="0">
+                        {% if errors.search_time orerrors.way_length %}
                         <div class="error-msg">{{ errors.search_time ?? errors.way_length }}</div>
                         {% endif %}
                     </div>
@@ -307,16 +307,16 @@
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'GC waypoint' }}</div>
                     <div class="oc-field-input">
-                        <input type="text" name="wp_gc" maxlength="12" class="form-control form-control-sm{% iferrors.wp_gc %} is-invalid{% endif %}" style="width:130px" value="{{ form.wp_gc | e }}" placeholder="GCxxxxx">
-                        {% iferrors.wp_gc %}<div class="error-msg">{{ errors.wp_gc }}</div>{% endif %}
+                        <input type="text" name="wp_gc" maxlength="12" class="form-control form-control-sm{% if errors.wp_gc %} is-invalid{% endif %}" style="width:130px" value="{{ form.wp_gc | e }}" placeholder="GCxxxxx">
+                        {% if errors.wp_gc %}<div class="error-msg">{{ errors.wp_gc }}</div>{% endif %}
                     </div>
                 </div>
 
                 <div class="oc-field-row">
                     <div class="oc-field-label">{{ 'Hidden since' }} *</div>
                     <div class="oc-field-input">
-                        <input type="date" name="hidden_date" class="form-control form-control-sm{% iferrors.hidden_date %} is-invalid{% endif %}" style="width:180px" value="{{ form.hidden_date | e }}">
-                        {% iferrors.hidden_date %}<div class="error-msg">{{ errors.hidden_date }}</div>{% endif %}
+                        <input type="date" name="hidden_date" class="form-control form-control-sm{% if errors.hidden_date %} is-invalid{% endif %}" style="width:180px" value="{{ form.hidden_date | e }}">
+                        {% if errors.hidden_date %}<div class="error-msg">{{ errors.hidden_date }}</div>{% endif %}
                     </div>
                 </div>
 
@@ -331,13 +331,13 @@
                         <div class="form-check mb-1 d-flex align-items-center gap-2">
                             <input class="form-check-input" type="radio" name="publish" id="pub_later" value="later"{% if form.publish == 'later' %} checked{% endif %}>
                             <label class="form-check-label" for="pub_later">{{ 'Publish on' }}</label>
-                            <input type="date" name="activate_date" id="activate_date" class="form-control form-control-sm{% iferrors.activate_date %} is-invalid{% endif %}" style="width:170px" value="{{ form.activate_date | e }}">
+                            <input type="date" name="activate_date" id="activate_date" class="form-control form-control-sm{% if errors.activate_date %} is-invalid{% endif %}" style="width:170px" value="{{ form.activate_date | e }}">
                             <select name="activate_hour" class="form-select form-select-sm" style="width:90px">
                                 {% for h in 0..23 %}
                                 <option value="{{ h }}"{% if form.activate_hour == h %} selected{% endif %}>{{ '%02d'|format(h) }}:00</option>
                                 {% endfor %}
                             </select>
-                            {% iferrors.activate_date %}<div class="error-msg">{{ errors.activate_date }}</div>{% endif %}
+                            {% if errors.activate_date %}<div class="error-msg">{{ errors.activate_date }}</div>{% endif %}
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="publish" id="pub_notnow" value="notnow"{% if form.publish == 'notnow' %} checked{% endif %}>
@@ -360,13 +360,13 @@
         {# ── TOS + Submit ── #}
         {% if not is_edit %}
         <div class="mb-3">
-            <div class="form-check{% iferrors.tos %} is-invalid{% endif %}">
-                <input class="form-check-input{% iferrors.tos %} is-invalid{% endif %}" type="checkbox" name="tos" id="tos" value="1"{% if form.tos %} checked{% endif %}>
+            <div class="form-check{% if errors.tos %} is-invalid{% endif %}">
+                <input class="form-check-input{% if errors.tos %} is-invalid{% endif %}" type="checkbox" name="tos" id="tos" value="1"{% if form.tos %} checked{% endif %}>
                 <label class="form-check-label" for="tos">
                     {{ 'I have read and agree to the Opencaching Terms of Service and Data License.' }}
                 </label>
             </div>
-            {% iferrors.tos %}<div class="error-msg ps-4">{{ errors.tos }}</div>{% endif %}
+            {% if errors.tos %}<div class="error-msg ps-4">{{ errors.tos }}</div>{% endif %}
         </div>
         {% endif %}
 
