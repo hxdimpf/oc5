@@ -298,8 +298,8 @@
                         <input type="text" name="search_time" maxlength="10" class="form-control form-control-sm{% if errors.search_time %} is-invalid{% endif %}" style="width:90px" value="{{ form.search_time | e }}" placeholder="0">
                         <span class="text-secondary" style="font-size:0.85em">{{ 'Distance (km)' }}</span>
                         <input type="text" name="way_length" maxlength="10" class="form-control form-control-sm{% if errors.way_length %} is-invalid{% endif %}" style="width:90px" value="{{ form.way_length | e }}" placeholder="0">
-                        {% if errors.search_time orerrors.way_length %}
-                        <div class="error-msg">{{ errors.search_time ?? errors.way_length }}</div>
+                        {% if errors.search_time or errors.way_length %}
+                        <div class="error-msg">{{ errors.search_time or errors.way_length }}</div>
                         {% endif %}
                     </div>
                 </div>
