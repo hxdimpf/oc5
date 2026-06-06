@@ -121,11 +121,15 @@
     <script>
         // Hover dropdowns
         document.querySelectorAll('.dropdown').forEach(d => {
+            const toggle = d.querySelector('.dropdown-toggle');
+            if (!toggle) return;
+            let bsDropdown;
             d.addEventListener('mouseenter', () => {
-                d.querySelector('.dropdown-toggle')?.dispatchEvent(new Event('click'));
+                bsDropdown = new bootstrap.Dropdown(toggle);
+                bsDropdown.show();
             });
             d.addEventListener('mouseleave', () => {
-                d.querySelector('.dropdown-toggle')?.dispatchEvent(new Event('click'));
+                if (bsDropdown) bsDropdown.hide();
             });
         });
     </script>
