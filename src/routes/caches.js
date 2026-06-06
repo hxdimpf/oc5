@@ -364,6 +364,7 @@ module.exports = {
         const subtypeToPng = {1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'};
         return {
           latitude: lat, longitude: lon,
+          location: `${lat}|${lon}`,
           description: w.description || '',
           typeId: w.type_id,
           type: w.type_name || '',
