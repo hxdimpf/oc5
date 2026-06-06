@@ -222,6 +222,9 @@ module.exports = {
     const [ownerStats] = await pool.query(
       'SELECT IFNULL(found,0) AS found, IFNULL(hidden,0) AS hidden FROM stat_user WHERE user_id=?', [c.owner_id]
     );
+    const [regionRow] = await pool.query(
+      'SELECT adm1 FROM cache_location WHERE cache_id=?', [c.cache_id]
+    );
 
     const data = {
       referenceCode: c.wp_oc,
@@ -295,7 +298,7 @@ module.exports = {
       ratingCount: Number(c.rating_count),
       isWatched: false,
       isRecommended: false,
-      location: { country: c.country || '', state: '' },
+      location: { country: c.country || '', state: regionRow?.adm1 || '' },
       postedCoordsFmt: decimalToDm(Number(c.latitude), Number(c.longitude)),
       correctedCoordsFmt: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
       placedDateFmt: fmtDate(c.date_hidden),
