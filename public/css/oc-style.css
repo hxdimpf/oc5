@@ -149,6 +149,7 @@ main.content {
 }
 #mapRoot { width: 100%; }
 body[data-map-js="true"] #mapRoot { height: calc(100vh - var(--oc-navbar-height)); }
+body[data-page="searchcaches"] #mapRoot { height: 0; }
 #mapRoot.page-map-active { height: calc(100vh - var(--oc-navbar-height)) !important; }
 
 body[data-page="livemap"] main.content {
