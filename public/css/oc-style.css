@@ -254,6 +254,7 @@ textarea::placeholder {
 }
 .navbar-dark .navbar-nav .nav-link:hover {
   color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 .navbar-dark .navbar-nav .nav-link.active {
   color: #ffffff;
