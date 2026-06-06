@@ -50,6 +50,16 @@ app.get('/api/cache/:wp', caches.apiDetail);
 app.post('/api/cache/:wp/note', caches.saveNote);
 app.post('/api/cache/:wp/log', caches.createLog);
 
+app.get('/api/geocode/city', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json([]);
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=10&q=${encodeURIComponent(q)}`;
+  try {
+    const data = await fetch(url, { headers: { 'User-Agent': 'oc5/1.0' } });
+    res.json(await data.json());
+  } catch { res.json([]); }
+});
+
 const search = require('./src/routes/search');
 app.get('/api/caches/live', search.liveCaches);
 

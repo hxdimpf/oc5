@@ -2,6 +2,15 @@
 {% block title %}Livemap - Opencaching.de{% endblock %}
 {% block data_page %}livemap{% endblock %}
 {% block data_map_js %}true{% endblock %}
+{% block body_start %}{% endblock %}
+{% block after_body_start %}
+<script>
+    window.uniCacheWP = [];
+    window.lat = 52.376;
+    window.lon = 9.732;
+    window.defaultZoom = 13;
+</script>
+{% endblock %}
 {% block page_content %}
-<div id="map" style="width:100%; height:calc(100vh - 56px);"></div>
+<div id="mapRoot"></div>
 {% endblock %}
