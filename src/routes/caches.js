@@ -81,9 +81,15 @@ module.exports = {
       }
     }
 
+    const editCoords = editCache ? decimalToDm(Number(editCache.latitude), Number(editCache.longitude)) : '';
+    const fromLat = (req.query.lat || '').toString();
+    const fromLon = (req.query.lon || '').toString();
+    const fromCoords = fromLat && fromLon ? decimalToDm(parseFloat(fromLat), parseFloat(fromLon)) : '';
+
     res.render('caches/new.njk', {
       types, sizes, countries, languages, attrs, wptTypes,
       editCache, editDesc, editAttribs, editNote, editWpts,
+      editCoords: editCoords || fromCoords,
       form: {},
       errors: {},
     });

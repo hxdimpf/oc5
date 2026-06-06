@@ -33,7 +33,7 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Coordinates (DM format)</label>
-            <input type="text" name="coords" class="form-control" placeholder="N51 02.345 E009 43.210" id="coordInput">
+            <input type="text" name="coords" class="form-control" placeholder="N51 02.345 E009 43.210" id="coordInput" value="{{ editCoords }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">Country</label>
@@ -47,7 +47,7 @@
             <label class="form-label">Difficulty</label>
             <select name="difficulty" class="form-select">
                 <option value="">--</option>
-                {% for i in range(2, 10) %}
+                {% for i in range(2, 11) %}
                 <option value="{{ i }}" {% if editCache and editCache.difficulty == i %}selected{% endif %}>{{ (i / 2) | round(1) }}</option>
                 {% endfor %}
             </select>
@@ -56,14 +56,14 @@
             <label class="form-label">Terrain</label>
             <select name="terrain" class="form-select">
                 <option value="">--</option>
-                {% for i in range(2, 10) %}
+                {% for i in range(2, 11) %}
                 <option value="{{ i }}" {% if editCache and editCache.terrain == i %}selected{% endif %}>{{ (i / 2) | round(1) }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="col-md-3">
             <label class="form-label">Date Hidden</label>
-            <input type="date" name="date_hidden" class="form-control" value="{{ editCache.date_hidden or '' }}">
+            <input type="date" name="date_hidden" class="form-control" value="{{ editCache.date_hidden | default('') | truncate(10, true, '') }}">
         </div>
         <div class="col-12">
             <label class="form-label">Short Description</label>
