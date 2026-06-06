@@ -356,7 +356,7 @@ module.exports = {
       } : null,
       hints: desc[0]?.hint || '',
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
-      sanitizedDescription: desc[0]?.desc || '',
+      sanitizedDescription: (desc[0]?.short_desc ? `<p><b>${desc[0].short_desc}</b></p>` : '') + (desc[0]?.desc || ''),
       shortDesc: desc[0]?.short_desc || '',
       additionalWaypoints: (wpts || []).map(w => {
         const lat = Number(w.latitude), lon = Number(w.longitude);
@@ -414,7 +414,6 @@ module.exports = {
       isFavorited: false,
       favoritePoints: Number(c.rating_count),
       pcn: noteRows?.[0]?.description || '',
-      additionalWaypoints: wpts || [],
       listingOutdated: false,
       needsMaintenance: false,
       requiresPasswd: !!c.logpw,
