@@ -156,63 +156,140 @@ module.exports = {
 
   apiDetail: async function (req, res) {
     const wp = req.params.wp.toUpperCase();
-    const [cache] = await pool.query(
+    const userId = req.user.id;
+
+    const [c] = await pool.query(
       `SELECT c.cache_id, c.wp_oc, c.name, c.latitude, c.longitude,
         c.difficulty / 2 AS difficulty, c.terrain / 2 AS terrain,
         c.country, c.date_hidden, c.date_created, c.wp_gc,
         c.type AS type_id, c.size AS size_id, c.status AS status_id,
         c.search_time, c.way_length,
         IF(c.logpw != '', 1, 0) AS logpw, c.logpw AS cache_logpw,
-        ct.en AS type_name, cs.name AS size_name,
+        ct.en AS type_name, ct.svg_name, cs.name AS size_name,
+        cst.en AS status_name,
         u.user_id AS owner_id, u.username AS owner_name,
-        IFNULL(sc.found, 0) AS find_count, IFNULL(sc.toprating, 0) AS rating_count
+        u.date_created AS owner_joined,
+        IFNULL(sc.found, 0) AS find_count,
+        IFNULL(sc.toprating, 0) AS rating_count,
+        IF(c.user_id = ?, 1, 0) AS is_owned,
+        IF(fl.id IS NOT NULL, 1, 0) AS is_found,
+        MAX(fl.date) AS found_date,
+        IF(pcn.id IS NOT NULL, 1, 0) AS has_pcn,
+        IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS has_cc,
+        pcn.latitude AS cc_lat, pcn.longitude AS cc_lon
        FROM caches c
        JOIN cache_type ct ON c.type = ct.id
        JOIN cache_size cs ON c.size = cs.id
+       JOIN cache_status cst ON c.status = cst.id
        JOIN user u ON c.user_id = u.user_id
        LEFT JOIN stat_caches sc ON c.cache_id = sc.cache_id
-       WHERE c.wp_oc = ?`, [wp]
+       LEFT JOIN cache_logs fl ON fl.cache_id = c.cache_id AND fl.user_id = ? AND fl.type IN (1,7)
+       LEFT JOIN coordinates pcn ON pcn.cache_id = c.cache_id AND pcn.user_id = ? AND pcn.type = 2
+       WHERE c.wp_oc = ? GROUP BY c.cache_id`,
+      [userId, userId, userId, wp]
     );
-    if (!cache) return res.status(404).json({ error: 'Cache not found' });
+    if (!c) return res.status(404).json({ error: 'Cache not found' });
 
-    const desc = await pool.query(
-      `SELECT cd.desc, cd.hint, cd.short_desc FROM cache_desc cd
-       WHERE cd.cache_id = ? ORDER BY cd.language = ? DESC LIMIT 1`,
-      [cache.cache_id, 'EN']
+    const [desc, wpts, attrs, logs, noteRows] = await Promise.all([
+      pool.query(`SELECT cd.desc, cd.hint, cd.short_desc, cd.desc_html, cd.desc_dark_unsafe
+        FROM cache_desc cd WHERE cd.cache_id = ? ORDER BY cd.language = 'EN' DESC LIMIT 1`, [c.cache_id]),
+      pool.query(`SELECT co.latitude, co.longitude, co.description, co.subtype AS type_id,
+        ct.name AS type_name FROM coordinates co
+        LEFT JOIN coordinates_type ct ON co.subtype = ct.id
+        WHERE co.cache_id = ? AND co.type = 1 AND co.user_id IS NULL ORDER BY co.id`, [c.cache_id]),
+      pool.query(`SELECT ca.id, ca.name, ca.icon FROM caches_attributes cxa
+        JOIN cache_attrib ca ON cxa.attrib_id = ca.id
+        WHERE cxa.cache_id = ? ORDER BY ca.id`, [c.cache_id]),
+      pool.query(`SELECT cl.id, cl.type, DATE_FORMAT(cl.date, '%Y-%m-%d') AS date,
+        cl.text, u.username, u.user_id AS userId
+        FROM cache_logs cl JOIN user u ON cl.user_id = u.user_id
+        WHERE cl.cache_id = ? AND cl.gdpr_deletion = 0
+        ORDER BY cl.date DESC LIMIT 30`, [c.cache_id]),
+      userId ? pool.query(`SELECT description, latitude, longitude, logpw FROM coordinates
+        WHERE cache_id=? AND user_id=? AND type=2 ORDER BY id DESC LIMIT 1`, [c.cache_id, userId]) : Promise.resolve([]),
+    ]);
+
+    const [ownerStats] = await pool.query(
+      'SELECT IFNULL(found,0) AS found, IFNULL(hidden,0) AS hidden FROM stat_user WHERE user_id=?', [c.owner_id]
     );
 
-    const wpts = await pool.query(
-      `SELECT co.latitude, co.longitude, co.description, ct.name AS type_name
-       FROM coordinates co LEFT JOIN coordinates_type ct ON co.subtype = ct.id
-       WHERE co.cache_id = ? AND co.type = 1 AND co.user_id IS NULL ORDER BY co.id`,
-      [cache.cache_id]
-    );
+    const fmtDate = d => d ? new Date(d).toISOString().slice(0, 10) : '';
 
-    const attrs = await pool.query(
-      `SELECT ca.id, ca.name, ca.icon FROM caches_attributes cxa
-       JOIN cache_attrib ca ON cxa.attrib_id = ca.id
-       WHERE cxa.cache_id = ? ORDER BY ca.id`, [cache.cache_id]
-    );
+    const data = {
+      referenceCode: c.wp_oc,
+      name: c.name,
+      geocacheType: { id: c.type_id, name: c.type_name, svgName: c.svg_name },
+      geocacheSize: { id: c.size_id, name: c.size_name },
+      difficulty: Number(c.difficulty),
+      terrain: Number(c.terrain),
+      status: c.status_id,
+      statusName: c.status_name,
+      lat: c.has_cc && c.cc_lat ? Number(c.cc_lat) : Number(c.latitude),
+      lon: c.has_cc && c.cc_lon ? Number(c.cc_lon) : Number(c.longitude),
+      _origLat: Number(c.latitude),
+      _origLon: Number(c.longitude),
+      listingLat: Number(c.latitude),
+      listingLon: Number(c.longitude),
+      dateHidden: fmtDate(c.date_hidden),
+      dateCreated: fmtDate(c.date_created),
+      logpw: !!c.logpw,
+      cacheLogpw: c.cache_logpw || '',
+      searchTime: Number(c.search_time),
+      wayLength: Number(c.way_length),
+      country: c.country,
+      wpGc: c.wp_gc || '',
+      owner: {
+        id: c.owner_id,
+        username: c.owner_name,
+        joinedDate: fmtDate(c.owner_joined),
+        joinedDateFmt: fmtDate(c.owner_joined),
+        findCount: ownerStats ? Number(ownerStats.found) : 0,
+        hideCount: ownerStats ? Number(ownerStats.hidden) : 0,
+        profileUrl: `/user/profile/${c.owner_id}`,
+      },
+      desc: desc[0] ? {
+        desc: desc[0].desc || '',
+        hint: desc[0].hint || '',
+        shortDesc: desc[0].short_desc || '',
+        descHtml: !!desc[0].desc_html,
+        descDarkUnsafe: !!desc[0].desc_dark_unsafe,
+      } : null,
+      hints: desc[0]?.hint || '',
+      descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
+      waypoints: wpts.map(w => ({
+        latitude: Number(w.latitude),
+        longitude: Number(w.longitude),
+        description: w.description || '',
+        typeId: w.type_id,
+        type: w.type_name || '',
+        name: w.type_name || 'Waypoint',
+        type_name: w.type_name || '',
+      })),
+      attributes: attrs,
+      logs: logs.map(l => ({
+        id: l.id, type: l.type, date: l.date, text: l.text || '',
+        username: l.username, userId: l.userId,
+      })),
+      noteRow: noteRows[0] || null,
+      _context: {
+        userId,
+        userName: req.user.username,
+        isOwner: !!c.is_owned,
+      },
+      isOwner: !!c.is_owned,
+      isFound: !!c.is_found,
+      foundDate: c.found_date ? fmtDate(c.found_date) : '',
+      foundDateFmt: c.found_date ? fmtDate(c.found_date) : '',
+      hasCC: !!c.has_cc,
+      ccLat: c.cc_lat ? Number(c.cc_lat) : null,
+      ccLon: c.cc_lon ? Number(c.cc_lon) : null,
+      findCount: Number(c.find_count),
+      ratingCount: Number(c.rating_count),
+      isWatched: false,
+      isRecommended: false,
+    };
 
-    const logs = await pool.query(
-      `SELECT cl.id, cl.type, DATE_FORMAT(cl.date, '%Y-%m-%d') AS date, cl.text, u.username
-       FROM cache_logs cl JOIN user u ON cl.user_id = u.user_id
-       WHERE cl.cache_id = ? AND cl.gdpr_deletion = 0
-       ORDER BY cl.date DESC LIMIT 30`, [cache.cache_id]
-    );
-
-    const userId = req.user.id;
-    const [note] = userId ? await pool.query(
-      'SELECT description, latitude, longitude, logpw FROM coordinates WHERE cache_id=? AND user_id=? AND type=2 ORDER BY id DESC LIMIT 1',
-      [cache.cache_id, userId]
-    ) : [null];
-
-    res.json({
-      cache, desc: desc[0] || null, waypoints: wpts, attributes: attrs,
-      logs, noteRow: note || null,
-      userId, userName: req.user.username,
-      isOwner: userId > 0 && cache.owner_id === userId,
-    });
+    res.json(data);
   },
 
   saveNote: async function (req, res) {
