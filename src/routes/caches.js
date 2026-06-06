@@ -362,7 +362,7 @@ module.exports = {
         name: w.type_name || 'Waypoint',
         type_name: w.type_name || '',
       })),
-      attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/images/attributes/${a.icon}` : '' })),
+      attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/images/attributes/${a.icon}.png` : '' })),
       logs: logs.map(l => ({
         id: l.id, type: l.type, date: l.date, text: l.text || '',
         username: l.username, userId: l.userId,
