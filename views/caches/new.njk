@@ -333,8 +333,8 @@
                             <label class="form-check-label" for="pub_later">{{ 'Publish on' }}</label>
                             <input type="date" name="activate_date" id="activate_date" class="form-control form-control-sm{% if errors.activate_date %} is-invalid{% endif %}" style="width:170px" value="{{ form.activate_date | e }}">
                             <select name="activate_hour" class="form-select form-select-sm" style="width:90px">
-                                {% for h in 0..23 %}
-                                <option value="{{ h }}"{% if form.activate_hour == h %} selected{% endif %}>{{ '%02d'|format(h) }}:00</option>
+                                {% for h in range(0, 24) %}
+                                <option value="{{ h }}"{% if form.activate_hour == h %} selected{% endif %}>{{ h }}:00</option>
                                 {% endfor %}
                             </select>
                             {% if errors.activate_date %}<div class="error-msg">{{ errors.activate_date }}</div>{% endif %}
