@@ -1,5 +1,15 @@
 const pool = require('../db');
 
+function decimalToDm(lat, lon) {
+  const ns = lat < 0 ? 'S' : 'N', ew = lon < 0 ? 'W' : 'E';
+  const alat = Math.abs(lat), alon = Math.abs(lon);
+  const latDeg = Math.floor(alat), lonDeg = Math.floor(alon);
+  const latMin = (alat - latDeg) * 60, lonMin = (alon - lonDeg) * 60;
+  return `${ns}${String(latDeg).padStart(2,'0')} ${latMin.toFixed(3).padStart(6,'0')} ${ew}${String(lonDeg).padStart(3,'0')} ${lonMin.toFixed(3).padStart(6,'0')}`;
+}
+function fmtDate(d) { return d ? new Date(d).toISOString().slice(0, 10) : ''; }
+function fmtTime(hours) { const h = Math.floor(hours), m = Math.round((hours - h) * 60); return `${h}:${String(m).padStart(2,'0')}`; }
+
 module.exports = {
   searchPage: async function (req, res) {
     const types = await pool.query(
@@ -213,8 +223,6 @@ module.exports = {
       'SELECT IFNULL(found,0) AS found, IFNULL(hidden,0) AS hidden FROM stat_user WHERE user_id=?', [c.owner_id]
     );
 
-    const fmtDate = d => d ? new Date(d).toISOString().slice(0, 10) : '';
-
     const data = {
       referenceCode: c.wp_oc,
       name: c.name,
@@ -287,6 +295,12 @@ module.exports = {
       ratingCount: Number(c.rating_count),
       isWatched: false,
       isRecommended: false,
+      location: { country: c.country || '', state: '' },
+      postedCoordsFmt: decimalToDm(Number(c.latitude), Number(c.longitude)),
+      correctedCoordsFmt: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
+      placedDateFmt: fmtDate(c.date_hidden),
+      publishedDateFmt: fmtDate(c.date_created),
+      timeRequired: Number(c.search_time) > 0 ? fmtTime(Number(c.search_time)) : '',
     };
 
     res.json(data);
