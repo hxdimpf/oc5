@@ -267,6 +267,7 @@ module.exports = {
       } : null,
       hints: desc[0]?.hint || '',
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
+      sanitizedDescription: desc[0]?.desc || '',
       waypoints: wpts.map(w => ({
         latitude: Number(w.latitude),
         longitude: Number(w.longitude),
