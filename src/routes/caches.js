@@ -357,7 +357,7 @@ module.exports = {
       } : null,
       hints: desc[0]?.hint || '',
       descDarkUnsafe: desc[0]?.desc_dark_unsafe || false,
-      sanitizedDescription: (() => { try { const { sanitizeDescription } = require('../sanitize'); return sanitizeDescription(desc[0]?.short_desc || '', desc[0]?.desc || '', c.wp_oc); } catch { return (desc[0]?.desc || ''); } })(),
+      sanitizedDescription: (() => { try { const sd = desc[0]; const shortHtml = sd?.short_desc ? `<p><b>${sd.short_desc}</b></p>` : ''; const { sanitizeDescription } = require('../sanitize'); return sanitizeDescription('', shortHtml + (sd?.desc || ''), c.wp_oc); } catch { return (desc[0]?.desc || ''); } })(),
       shortDesc: desc[0]?.short_desc || '',
       additionalWaypoints: (wpts || []).map(w => {
         const lat = Number(w.latitude), lon = Number(w.longitude);
@@ -369,6 +369,7 @@ module.exports = {
           type: w.type_name || '',
           name: w.type_name || 'Waypoint',
           type_name: w.type_name || '',
+          typeName: w.type_name || '',
           icon: subtypeToPng[w.type_id] ? `/images/waypoints/${subtypeToPng[w.type_id]}` : '',
           myCoords: decimalToDm(lat, lon),
           prefix: (w.type_name || 'WP').substring(0, 2).toUpperCase(),
