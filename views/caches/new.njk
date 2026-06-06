@@ -10,13 +10,14 @@
     <h2>{% if editCache %}Edit {{ editCache.wp_oc }}{% else %}New Cache{% endif %}</h2>
     <form method="post" class="row g-3">
         {% if editCache %}<input type="hidden" name="edit_id" value="{{ editCache.cache_id }}">{% endif %}
+        <input type="hidden" id="cache_attribs" name="cache_attribs" value="{{ editAttribs | join(';') }}">
         <div class="col-md-8">
             <label class="form-label">Cache Name</label>
             <input type="text" name="name" class="form-control" value="{{ editCache.name or '' }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select name="type" class="form-select">
+            <select name="type" id="cacheType" class="form-select">
                 <option value="">--</option>
                 {% for t in types %}
                 <option value="{{ t.id }}" {% if editCache and editCache.type == t.id %}selected{% endif %}>{{ t.name }}</option>
