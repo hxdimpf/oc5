@@ -329,7 +329,7 @@ export async function ocSearchUsers(q) {
 export async function ocGetUserProfile(userId) {
   const [user] = await pool.query('SELECT * FROM user WHERE user_id = ?', [userId]);
   if (!user) return null;
-  const [[stats]] = await pool.query('SELECT IFNULL(found,0) AS findCount, IFNULL(hidden,0) AS hideCount FROM stat_user WHERE user_id = ?', [userId]);
+  const [stats] = await pool.query('SELECT IFNULL(found,0) AS findCount, IFNULL(hidden,0) AS hideCount FROM stat_user WHERE user_id = ?', [userId]);
   if (stats) { user.findCount = Number(stats.findCount); user.hideCount = Number(stats.hideCount); }
   return user;
 }
