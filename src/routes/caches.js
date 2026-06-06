@@ -82,6 +82,7 @@ module.exports = {
     }
 
     const editCoords = editCache ? decimalToDm(Number(editCache.latitude), Number(editCache.longitude)) : '';
+    const editDateHidden = editCache && editCache.date_hidden ? fmtDate(editCache.date_hidden) : '';
     const fromLat = (req.query.lat || '').toString();
     const fromLon = (req.query.lon || '').toString();
     const fromCoords = fromLat && fromLon ? decimalToDm(parseFloat(fromLat), parseFloat(fromLon)) : '';
@@ -90,6 +91,7 @@ module.exports = {
       types, sizes, countries, languages, attrs, wptTypes,
       editCache, editDesc, editAttribs, editNote, editWpts,
       editCoords: editCoords || fromCoords,
+      editDateHidden,
       form: {},
       errors: {},
     });
