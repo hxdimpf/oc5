@@ -433,7 +433,7 @@ function createWPTable() {
     columnDefaults: { resizable: false },
     columns: [
       { title: '',            field: 'icon',        headerSort: false, width: 28,
-        formatter: cell => cell.getValue() ? `<img src="${cell.getValue()}" width="20" height="20" style="vertical-align:middle">` : '' },
+        formatter: cell => cell.getValue() ? `<img src="${cell.getValue()}" width="30" height="30" style="vertical-align:middle">` : '' },
       { title: 'Coordinates', field: 'myCoords',    headerSort: false, width: 170 },
       { title: 'Prefix',      field: 'prefix',      headerSort: true,  width: 60 },
       { title: 'Name',        field: 'name',        headerSort: false, width: 190 },
