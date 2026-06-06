@@ -87,13 +87,39 @@ module.exports = {
     const fromLon = (req.query.lon || '').toString();
     const fromCoords = fromLat && fromLon ? decimalToDm(parseFloat(fromLat), parseFloat(fromLon)) : '';
 
+    const form = editCache ? {
+      name: editCache.name || '',
+      type: String(editCache.type || ''),
+      size: String(editCache.size || ''),
+      difficulty: String(editCache.difficulty || ''),
+      terrain: String(editCache.terrain || ''),
+      coords: editCoords || '',
+      country: editCache.country || 'DE',
+      search_time: editCache.search_time || '',
+      way_length: editCache.way_length || '',
+      wp_gc: editCache.wp_gc || '',
+      desc_lang: editDesc?.language || 'EN',
+      short_desc: editDesc?.short_desc || '',
+      desc: editDesc?.desc || '',
+      hints: editDesc?.hint || '',
+      hidden_date: editDateHidden,
+      log_pw: editCache.logpw || '',
+      cache_note: editNote?.description || '',
+      user_coords: editNote && editNote.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
+      waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({id:w.id,type:w.subtype,coords:decimalToDm(Number(w.latitude),Number(w.longitude)),desc:w.description}))) : '[]',
+      tos: true,
+      selected_attribs: editAttribs?.join(';') || '',
+    } : {};
+
     res.render('caches/new.njk', {
       types, sizes, countries, languages, attrs, wptTypes,
       editCache, editDesc, editAttribs, editNote, editWpts,
       editCoords: editCoords || fromCoords,
       editDateHidden,
-      form: {},
+      form: form || {},
       errors: {},
+      is_edit: !!editCache,
+      edit_cache_id: editCache?.cache_id || 0,
     });
   },
 
