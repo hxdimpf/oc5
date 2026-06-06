@@ -1,7 +1,6 @@
 {% extends "base.njk" %}
 {% block data_page %}searchcaches{% endblock %}
 {% block data_map_js %}true{% endblock %}
-
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
@@ -94,5 +93,6 @@
 {% endblock %}
 
 {% block page_content_after %}
-<div id="mapRoot"></div>
+<div id="mapRoot" style="display:none;"></div>
 {% endblock %}
+
