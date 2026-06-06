@@ -271,7 +271,8 @@ module.exports = {
         MAX(fl.date) AS found_date,
         IF(pcn.id IS NOT NULL, 1, 0) AS has_pcn,
         IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS has_cc,
-        pcn.latitude AS cc_lat, pcn.longitude AS cc_lon
+        pcn.latitude AS cc_lat, pcn.longitude AS cc_lon,
+        IF(oc_only.cache_id IS NOT NULL, 1, 0) AS is_oc_only
        FROM caches c
        JOIN cache_type ct ON c.type = ct.id
        JOIN cache_size cs ON c.size = cs.id
@@ -280,6 +281,7 @@ module.exports = {
        LEFT JOIN stat_caches sc ON c.cache_id = sc.cache_id
        LEFT JOIN cache_logs fl ON fl.cache_id = c.cache_id AND fl.user_id = ? AND fl.type IN (1,7)
        LEFT JOIN coordinates pcn ON pcn.cache_id = c.cache_id AND pcn.user_id = ? AND pcn.type = 2
+       LEFT JOIN caches_attributes oc_only ON oc_only.cache_id = c.cache_id AND oc_only.attrib_id = 6
        WHERE c.wp_oc = ? GROUP BY c.cache_id`,
       [userId, userId, userId, wp]
     );
@@ -392,6 +394,22 @@ module.exports = {
       placedDateFmt: fmtDate(c.date_hidden),
       publishedDateFmt: fmtDate(c.date_created),
       timeRequired: Number(c.search_time) > 0 ? fmtTime(Number(c.search_time)) : '',
+      isOcOnly: !!c.is_oc_only,
+      isArchived: c.status_id === 3,
+      isDisabled: c.status_id === 2,
+      isDNF: false,
+      dnfDate: '',
+      dnfDateFmt: '',
+      isFavorited: false,
+      favoritePoints: Number(c.rating_count),
+      pcn: noteRows?.[0]?.description || '',
+      additionalWaypoints: wpts?.length || 0,
+      listingOutdated: false,
+      needsMaintenance: false,
+      requiresPasswd: !!c.logpw,
+      postedCoordinates: decimalToDm(Number(c.latitude), Number(c.longitude)),
+      ianaTimezoneId: 'Europe/Berlin',
+      logTypes: [],
     };
 
     res.json(data);
