@@ -2,6 +2,9 @@
 {% block title %}{% if editCache %}Edit{% else %}New{% endif %} Cache - Opencaching.de{% endblock %}
 {% block data_page %}newcache{% endblock %}
 {% block data_map_js %}true{% endblock %}
+{% block after_body_start %}
+<script>window.uniCacheWP = [];</script>
+{% endblock %}
 {% block page_content %}
 <div class="container mt-4" id="newCacheForm">
     <h2>{% if editCache %}Edit {{ editCache.wp_oc }}{% else %}New Cache{% endif %}</h2>
