@@ -119,8 +119,19 @@
     <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script type="module" src="/js/loader.js"></script>
     <script>
+        // Hover dropdowns
+        document.querySelectorAll('.dropdown').forEach(d => {
+            d.addEventListener('mouseenter', () => {
+                d.querySelector('.dropdown-toggle')?.dispatchEvent(new Event('click'));
+            });
+            d.addEventListener('mouseleave', () => {
+                d.querySelector('.dropdown-toggle')?.dispatchEvent(new Event('click'));
+            });
+        });
+    </script>
+    <script>
         (function() {
-            var btn = document.getElementById('themeToggle');
+            const btn = document.getElementById('themeToggle');
             if (!btn) return;
             btn.addEventListener('click', function() {
                 var current = document.documentElement.getAttribute('data-theme') || 'light';
