@@ -87,29 +87,32 @@ module.exports = {
     const fromLon = (req.query.lon || '').toString();
     const fromCoords = fromLat && fromLon ? decimalToDm(parseFloat(fromLat), parseFloat(fromLon)) : '';
 
-    const form = editCache ? {
-      name: editCache.name || '',
-      type: String(editCache.type || ''),
-      size: String(editCache.size || ''),
-      difficulty: String(editCache.difficulty || ''),
-      terrain: String(editCache.terrain || ''),
-      coords: editCoords || '',
-      country: editCache.country || 'DE',
-      search_time: editCache.search_time || '',
-      way_length: editCache.way_length || '',
-      wp_gc: editCache.wp_gc || '',
+    const form = {
+      name: editCache?.name || '',
+      type: editCache?.type ? String(editCache.type) : '',
+      size: editCache?.size ? String(editCache.size) : '',
+      difficulty: editCache?.difficulty ? String(editCache.difficulty) : '',
+      terrain: editCache?.terrain ? String(editCache.terrain) : '',
+      coords: editCoords || fromCoords || '',
+      country: editCache?.country || 'DE',
+      search_time: editCache?.search_time || '',
+      way_length: editCache?.way_length || '',
+      wp_gc: editCache?.wp_gc || '',
       desc_lang: editDesc?.language || 'EN',
       short_desc: editDesc?.short_desc || '',
       desc: editDesc?.desc || '',
       hints: editDesc?.hint || '',
-      hidden_date: editDateHidden,
-      log_pw: editCache.logpw || '',
+      hidden_date: editDateHidden || '',
+      log_pw: editCache?.logpw || '',
       cache_note: editNote?.description || '',
-      user_coords: editNote && editNote.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
+      user_coords: editNote?.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
       waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({id:w.id,type:w.subtype,coords:decimalToDm(Number(w.latitude),Number(w.longitude)),desc:w.description}))) : '[]',
       tos: true,
       selected_attribs: editAttribs?.length ? editAttribs : [],
-    } : {};
+      publish: editCache ? 'notnow' : 'now2',
+      activate_date: '',
+      activate_hour: '',
+    };
 
     res.render('caches/new.njk', {
       types, sizes, countries, languages, attrs, wptTypes,
