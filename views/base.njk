@@ -119,17 +119,19 @@
     <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script type="module" src="/js/loader.js"></script>
     <script>
-        // Hover dropdowns
+        // Hover dropdowns — use Bootstrap 5 data attributes
         document.querySelectorAll('.dropdown').forEach(d => {
-            const toggle = d.querySelector('.dropdown-toggle');
-            if (!toggle) return;
-            let bsDropdown;
             d.addEventListener('mouseenter', () => {
-                bsDropdown = new bootstrap.Dropdown(toggle);
-                bsDropdown.show();
+                const menu = d.querySelector('.dropdown-menu');
+                if (menu) menu.classList.add('show');
+                d.querySelector('.dropdown-toggle')?.classList.add('show');
+                d.querySelector('.dropdown-toggle')?.setAttribute('aria-expanded', 'true');
             });
             d.addEventListener('mouseleave', () => {
-                if (bsDropdown) bsDropdown.hide();
+                const menu = d.querySelector('.dropdown-menu');
+                if (menu) menu.classList.remove('show');
+                d.querySelector('.dropdown-toggle')?.classList.remove('show');
+                d.querySelector('.dropdown-toggle')?.setAttribute('aria-expanded', 'false');
             });
         });
     </script>
