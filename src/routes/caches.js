@@ -88,7 +88,7 @@ export async function apiSearch(req, res) {
   const items = rows.map(r => ({
     referenceCode: r.wp_oc, name: r.name, shortName: r.name.length>25?r.name.slice(0,25)+'…':r.name,
     lat: r.latitude, lon: r.longitude, geocacheType: { id: r.type_id, name: r.type_name||'' },
-    difficulty: r.difficulty, terrain: r.terrain, ownerAlias: r.username,
+    difficulty: r.difficulty, terrain: r.terrain, ownerAlias: r.username, ownerCode: String(r.username),
     publishedDate: r.date_created?new Date(r.date_created).toISOString().slice(0,10):'',
     platform: 'OC', isOwned: req.user.id>0&&r.owner_id===req.user.id,
     isFound: false, isDNF: false, isCached: false, isDisabled: r.status===2, isArchived: r.status===3,
