@@ -156,7 +156,7 @@ export async function apiLive(req, res) {
      JOIN cache_size s ON c.size=s.id
      LEFT JOIN user u ON c.user_id=u.user_id
      LEFT JOIN cache_logs fl ON c.cache_id=fl.cache_id AND fl.user_id=? AND fl.type IN (1,7)
-     LEFT JOIN cache_note pcn ON c.cache_id=pcn.cache_id AND pcn.user_id=?
+     LEFT JOIN coordinates pcn ON c.cache_id=pcn.cache_id AND pcn.user_id=? AND pcn.type=2
      WHERE c.status IN (1,2)
      AND c.latitude BETWEEN ? AND ? AND c.longitude BETWEEN ? AND ?
      AND c.difficulty BETWEEN ? AND ?
