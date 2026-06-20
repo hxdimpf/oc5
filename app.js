@@ -39,14 +39,15 @@ try {
     const content = readFileSync(path.join(__dirname, 'public/_frontend/translations', f), 'utf8');
     const obj = {};
     for (const line of content.split('\n')) {
-      const match = line.match(/^\s*(['"])?(.+?)\1?\s*:\s*(.+)$/);
-      if (match && match[2]) {
-        const key = match[2];
-        let val = match[3].trim();
-        if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"')))
-          val = val.slice(1, -1);
-        obj[key] = val;
-      }
+      // Try quoted key first (e.g. 'by:': 'von:'), then unquoted
+      let match = line.match(/^\s*(['"])(.+?)\1\s*:\s*(.+)$/);
+      if (!match) match = line.match(/^\s*([^'\"#:][^:]*?)\s*:\s*(.+)$/);
+      if (!match || !match[2]) continue;
+      const key = match[2];
+      let val = (match[3] || '').trim();
+      if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"')))
+        val = val.slice(1, -1);
+      obj[key] = val;
     }
     i18n_data[m[1]] = obj;
   }
