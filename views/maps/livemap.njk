@@ -6,9 +6,12 @@
 {% block after_body_start %}
 <script>
     window.uniCacheWP = [];
-    window.lat = 52.376;
-    window.lon = 9.732;
-    window.defaultZoom = 13;
+    (function() {
+        var p = new URLSearchParams(location.search);
+        window.lat         = p.has('lat')  ? parseFloat(p.get('lat'))  : 52.376;
+        window.lon         = p.has('lon')  ? parseFloat(p.get('lon'))  : 9.732;
+        window.defaultZoom = p.has('zoom') ? parseInt(p.get('zoom'))   : 13;
+    })();
 </script>
 {% endblock %}
 {% block page_content %}
