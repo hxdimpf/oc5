@@ -178,8 +178,17 @@ export async function ocGetCacheDetail(wp, userId) {
 
   const d = desc[0];
   const shortHtml = d?.short_desc ? `<p><b>${d.short_desc}</b></p>` : '';
-  let sanitizedDescription = shortHtml + (d?.desc || '');
-  try { const { sanitizeDescription: sd } = await import('../sanitize.mjs'); sanitizedDescription = sd('', shortHtml + (d?.desc||''), c.wp_oc); } catch {}
+  let descriptionHtml = shortHtml + (d?.desc || '');
+  // Render markdown if no HTML/BBCode detected (plain text → markdown)
+  if (d?.desc && !/<[a-z][\s\S]*>/i.test(d.desc) && !/\[(\/?(b|i|u|url|img|quote|color|size|list|table|center|font|code))[^\]]*\]/i.test(d.desc)) {
+    try {
+      const { marked } = await import('marked');
+      descriptionHtml = shortHtml + marked.parse(d.desc, { html: false });
+    } catch {}
+  } else {
+    try { const { sanitizeDescription: sd } = await import('../sanitize.mjs'); descriptionHtml = sd('', shortHtml + (d?.desc||''), c.wp_oc); } catch {}
+  }
+  const sanitizedDescription = descriptionHtml;
 
   return {
     referenceCode: c.wp_oc, name: c.name,
