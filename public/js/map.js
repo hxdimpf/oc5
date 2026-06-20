@@ -185,6 +185,22 @@ if (document.body.dataset.page !== 'mapServer') {
 
 L.control.zoom().addTo(mapRoot);
 
+// Update URL query params on map move/zoom (bookmarkable URLs)
+let _moveThrottle;
+mapRoot.on('moveend zoomend', () => {
+  clearTimeout(_moveThrottle);
+  _moveThrottle = setTimeout(() => {
+    const c = mapRoot.getCenter();
+    const url = new URL(location);
+    url.searchParams.set('lat', c.lat.toFixed(5));
+    url.searchParams.set('lon', c.lng.toFixed(5));
+    url.searchParams.set('zoom', mapRoot.getZoom());
+    history.replaceState(null, '', url);
+    window.lat = c.lat;
+    window.lon = c.lng;
+  }, 250);
+});
+
 //-------------------------
 // Map viewport height — use visualViewport on mobile for actual visible area
 //
