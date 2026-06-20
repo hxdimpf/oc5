@@ -161,14 +161,14 @@ export async function apiLive(req, res) {
   );
 
   const items = rows.map(r => ({
-    referenceCode: r.wp_oc, name: r.name, lat: parseFloat(r.ccLat||r.listingLat), lon: parseFloat(r.ccLon||r.listingLon),
-    listingLat: parseFloat(r.listingLat), listingLon: parseFloat(r.listingLon),
-    geocacheType: { id: r.type, name: r.typeName }, geocacheSize: { id: r.size, name: r.sizeName },
-    difficulty: parseFloat(r.difficulty), terrain: parseFloat(r.terrain),
+    referenceCode: r.wp_oc, name: r.name, lat: Number(r.ccLat||r.listingLat), lon: Number(r.ccLon||r.listingLon),
+    listingLat: Number(r.listingLat), listingLon: Number(r.listingLon),
+    geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
+    difficulty: Number(r.difficulty), terrain: Number(r.terrain),
     isArchived: false, isDisabled: r.status === 2, isFound: false,
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
     publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
-    favoritePoints: r.favoritePoints, findCount: r.findCount,
+    favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
     platform: 'OC', isOwned: false, isSelected: false, foundDate: '',
   }));
   res.json({ count: items.length, items });
