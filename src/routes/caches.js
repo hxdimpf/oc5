@@ -140,23 +140,28 @@ export async function apiLive(req, res) {
   const sLat = Math.min(lat1, lat2), nLat = Math.max(lat1, lat2);
   const wLon = Math.min(lon1, lon2), eLon = Math.max(lon1, lon2);
 
+  const userId = (req.user?.id) || 0;
   const rows = await pool.query(
     `SELECT c.wp_oc, c.name, c.wp_gc, c.type, t.name AS typeName, c.size, s.name AS sizeName,
      c.difficulty, c.terrain, c.status, c.date_created, c.user_id,
      c.latitude AS listingLat, c.longitude AS listingLon,
      u.username AS ownerAlias, u.username AS ownerCode,
      (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
-     (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints
+     (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints,
+     IF(fl.id IS NOT NULL, 1, 0) AS isFound,
+     IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
+     IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS hasCC
      FROM caches c
      JOIN cache_type t ON c.type=t.id
      JOIN cache_size s ON c.size=s.id
-     LEFT JOIN cache_coordinates cc ON c.cache_id=cc.cache_id
      LEFT JOIN user u ON c.user_id=u.user_id
+     LEFT JOIN cache_logs fl ON c.cache_id=fl.cache_id AND fl.user_id=? AND fl.type IN (1,7)
+     LEFT JOIN cache_note pcn ON c.cache_id=pcn.cache_id AND pcn.user_id=?
      WHERE c.status IN (1,2)
      AND c.latitude BETWEEN ? AND ? AND c.longitude BETWEEN ? AND ?
      AND c.difficulty BETWEEN ? AND ?
      LIMIT 5000`,
-    [sLat, nLat, wLon, eLon, minDiff, maxDiff]
+    [userId, userId, sLat, nLat, wLon, eLon, minDiff, maxDiff]
   );
 
   const items = rows.map(r => ({
@@ -165,13 +170,14 @@ export async function apiLive(req, res) {
     listingLat: Number(r.listingLat), listingLon: Number(r.listingLon),
     geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
     difficulty: Number(r.difficulty)/2, terrain: Number(r.terrain)/2,
-    isArchived: false, isDisabled: r.status === 2, isFound: false, foundDate: '',
+    isArchived: false, isDisabled: r.status === 2, isFound: !!r.isFound, foundDate: '',
+    isDNF: false, hasCC: !!r.hasCC, hasPCN: !!r.hasPCN,
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
     publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
     shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
-    platform: 'OC', isOwned: (req.user?.id && r.user_id === req.user.id), isSelected: false,
-    isOcOnly: !r.wp_gc, hasCC: false, hasPCN: false, pcn: '',
+    platform: 'OC', isOwned: (userId && r.user_id === userId), isSelected: false,
+    isOcOnly: !r.wp_gc, pcn: '',
   }));
   res.json({ count: items.length, items });
 }
