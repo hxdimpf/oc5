@@ -15,6 +15,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use((req, res, next) => {
+  req.cookies = {};
+  const h = req.headers.cookie;
+  if (h) h.split(';').forEach(c => { const [k,v] = c.trim().split('='); req.cookies[k] = decodeURIComponent(v||''); });
+  next();
+});
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend')));
