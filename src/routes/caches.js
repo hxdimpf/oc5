@@ -141,10 +141,9 @@ export async function apiLive(req, res) {
   const wLon = Math.min(lon1, lon2), eLon = Math.max(lon1, lon2);
 
   const rows = await pool.query(
-    `SELECT c.wp_oc, c.name, c.type, t.name AS typeName, c.size, s.name AS sizeName,
+    `SELECT c.wp_oc, c.name, c.wp_gc, c.type, t.name AS typeName, c.size, s.name AS sizeName,
      c.difficulty, c.terrain, c.status, c.date_created, c.user_id,
      c.latitude AS listingLat, c.longitude AS listingLon,
-     cc.latitude AS ccLat, cc.longitude AS ccLon,
      u.username AS ownerAlias, u.username AS ownerCode,
      (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
      (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints
@@ -172,7 +171,7 @@ export async function apiLive(req, res) {
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
     shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
     platform: 'OC', isOwned: (req.user?.id && r.user_id === req.user.id), isSelected: false,
-    isOcOnly: false, hasCC: !!r.ccLat, hasPCN: false, pcn: '',
+    isOcOnly: !r.wp_gc, hasCC: false, hasPCN: false, pcn: '',
   }));
   res.json({ count: items.length, items });
 }
