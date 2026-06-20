@@ -75,6 +75,16 @@
                     {% endblock %}
 
                     <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle" href="#" id="localeDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-globe"></i>
+                                {{ locale | upper | default('EN') }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="localeDropdown">
+                                <li><a class="dropdown-item {% if locale == 'de' %}active{% endif %}" href="/set-locale/de">Deutsch</a></li>
+                                <li><a class="dropdown-item {% if locale == 'en' %}active{% endif %}" href="/set-locale/en">English</a></li>
+                            </ul>
+                        </li>
                         <li class="nav-item">
                             <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
                                 <span class="theme-icon-light">&#9788;</span>
