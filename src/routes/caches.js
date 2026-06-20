@@ -155,21 +155,22 @@ export async function apiLive(req, res) {
      LEFT JOIN user u ON c.user_id=u.user_id
      WHERE c.status IN (1,2)
      AND c.latitude BETWEEN ? AND ? AND c.longitude BETWEEN ? AND ?
-     AND (c.difficulty*2) BETWEEN ? AND ?
-     LIMIT 2000`,
+     AND c.difficulty BETWEEN ? AND ?
+     LIMIT 5000`,
     [sLat, nLat, wLon, eLon, minDiff, maxDiff]
   );
 
   const items = rows.map(r => ({
-    referenceCode: r.wp_oc, name: r.name, lat: Number(r.ccLat||r.listingLat), lon: Number(r.ccLon||r.listingLon),
+    _id: r.wp_oc, referenceCode: r.wp_oc, name: r.name,
+    lat: Number(r.ccLat||r.listingLat), lon: Number(r.ccLon||r.listingLon),
     listingLat: Number(r.listingLat), listingLon: Number(r.listingLon),
     geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
-    difficulty: Number(r.difficulty), terrain: Number(r.terrain),
-    isArchived: false, isDisabled: r.status === 2, isFound: false,
+    difficulty: Number(r.difficulty)/2, terrain: Number(r.terrain)/2,
+    isArchived: false, isDisabled: r.status === 2, isFound: false, foundDate: '',
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
     publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
-    platform: 'OC', isOwned: false, isSelected: false, foundDate: '',
+    platform: 'OC', isOwned: false, isSelected: false,
   }));
   res.json({ count: items.length, items });
 }
