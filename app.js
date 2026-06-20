@@ -17,20 +17,52 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend')));
 
 nunjucks.configure(path.join(__dirname, 'public/_frontend/templates/nunjucks'), {
   autoescape: true, express: app, noCache: true,
 });
 
+// ── i18n: load translations once at startup ──
+import { readFileSync, readdirSync, existsSync } from 'fs';
+const i18n_data = {};
+try {
+  for (const f of readdirSync(path.join(__dirname, 'public/_frontend/translations'))) {
+    const m = f.match(/messages\+intl-icu\.(\w+)\.yaml/);
+    if (!m) continue;
+    const content = readFileSync(path.join(__dirname, 'public/_frontend/translations', f), 'utf8');
+    const obj = {};
+    for (const line of content.split('\n')) {
+      const match = line.match(/^\s*(['"])?(.+?)\1?\s*:\s*(.+)$/);
+      if (match && match[2]) {
+        const key = match[2];
+        let val = match[3].trim();
+        if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"')))
+          val = val.slice(1, -1);
+        obj[key] = val;
+      }
+    }
+    i18n_data[m[1]] = obj;
+  }
+} catch (e) {}
+
 app.use(auth);
-app.use((req, res, next) => { res.locals.user = req.user; next(); });
+app.use((req, res, next) => {
+  res.locals.locale = req.cookies?.oc_locale || 'en';
+  res.locals.i18n_json = JSON.stringify(i18n_data[res.locals.locale] || i18n_data['en'] || {});
+  res.locals.user = req.user;
+  next();
+});
 
 // ── Routes ──────────────────────────────────────────────────────────
 
 app.get('/', indexRoute.home);
 app.get('/login', (req, res) => res.render('login.njk'));
 app.post('/login', (req, res) => res.redirect('/'));
+app.get('/set-locale/:locale', (req, res) => {
+  res.cookie('oc_locale', req.params.locale, { maxAge: 365*86400*1000, path: '/' });
+  res.redirect(req.get('referer') || '/');
+});
 app.get('/logout', (req, res) => { res.clearCookie('ocdevelopmentdata'); res.redirect('/login'); });
 app.get('/livemap', (req, res) => res.render('maps/livemap.njk'));
 
