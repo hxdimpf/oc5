@@ -143,17 +143,19 @@ export async function apiLive(req, res) {
   const rows = await pool.query(
     `SELECT c.wp_oc, c.name, c.type, t.name AS typeName, c.size, s.name AS sizeName,
      c.difficulty, c.terrain, c.status, c.date_created, c.user_id,
-     cl.lat AS listingLat, cl.lon AS listingLon, cc.lat AS ccLat, cc.lon AS ccLon,
+     co.latitude AS listingLat, co.longitude AS listingLon,
+     cc.latitude AS ccLat, cc.longitude AS ccLon,
      u.username AS ownerAlias, u.username AS ownerCode,
      (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
      (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints
      FROM caches c
      JOIN cache_type t ON c.type=t.id
      JOIN cache_size s ON c.size=s.id
-     JOIN cache_location cl ON c.cache_id=cl.cache_id
+     JOIN coordinates co ON c.cache_id=co.cache_id AND co.type=1 AND co.subtype=1
      LEFT JOIN cache_coordinates cc ON c.cache_id=cc.cache_id
      LEFT JOIN user u ON c.user_id=u.user_id
-     WHERE c.status IN (1,2) AND cl.lat BETWEEN ? AND ? AND cl.lon BETWEEN ? AND ?
+     WHERE c.status IN (1,2)
+     AND co.latitude BETWEEN ? AND ? AND co.longitude BETWEEN ? AND ?
      AND (c.difficulty*2) BETWEEN ? AND ?
      LIMIT 2000`,
     [sLat, nLat, wLon, eLon, minDiff, maxDiff]
