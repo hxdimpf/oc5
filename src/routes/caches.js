@@ -148,6 +148,7 @@ export async function apiLive(req, res) {
      u.username AS ownerAlias, u.username AS ownerCode,
      (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
      (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints,
+     IF(oc6.cache_id IS NOT NULL, 1, 0) AS isOcOnly,
      IF(fl.id IS NOT NULL, 1, 0) AS isFound,
      IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
      IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS hasCC
@@ -155,6 +156,7 @@ export async function apiLive(req, res) {
      JOIN cache_type t ON c.type=t.id
      JOIN cache_size s ON c.size=s.id
      LEFT JOIN user u ON c.user_id=u.user_id
+     LEFT JOIN caches_attributes oc6 ON c.cache_id=oc6.cache_id AND oc6.attrib_id=6
      LEFT JOIN cache_logs fl ON c.cache_id=fl.cache_id AND fl.user_id=? AND fl.type IN (1,7)
      LEFT JOIN coordinates pcn ON c.cache_id=pcn.cache_id AND pcn.user_id=? AND pcn.type=2
      WHERE c.status IN (1,2)
@@ -171,13 +173,13 @@ export async function apiLive(req, res) {
     geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
     difficulty: Number(r.difficulty)/2, terrain: Number(r.terrain)/2,
     isArchived: false, isDisabled: r.status === 2, isFound: !!r.isFound, foundDate: '',
-    isDNF: false, hasCC: !!r.hasCC, hasPCN: !!r.hasPCN,
+    hasCC: !!r.hasCC, hasPCN: !!r.hasPCN,
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
     publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
     shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
     platform: 'OC', isOwned: (userId && r.user_id === userId), isSelected: false,
-    isOcOnly: !r.wp_gc, pcn: '',
+    isOcOnly: !!r.isOcOnly, pcn: '',
   }));
   res.json({ count: items.length, items });
 }
