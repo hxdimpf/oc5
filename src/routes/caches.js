@@ -170,8 +170,9 @@ export async function apiLive(req, res) {
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
     publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
+    shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
     platform: 'OC', isOwned: (req.user?.id && r.user_id === req.user.id), isSelected: false,
-    hasCC: !!r.ccLat, hasPCN: false, pcn: '',
+    isOcOnly: false, hasCC: !!r.ccLat, hasPCN: false, pcn: '',
   }));
   res.json({ count: items.length, items });
 }
