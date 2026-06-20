@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-nunjucks.configure(path.join(__dirname, 'views'), {
+nunjucks.configure(path.join(__dirname, 'public/_frontend/templates/nunjucks'), {
   autoescape: true, express: app, noCache: true,
 });
 
