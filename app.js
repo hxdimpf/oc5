@@ -70,6 +70,7 @@ app.get('/caches', cachesRoute.searchPage);
 app.get('/cache/new', cachesRoute.newCachePage);
 app.post('/cache/new', cachesRoute.newCacheSubmit);
 app.get('/cache/:wp', cachesRoute.detail);
+app.get('/api/caches/live', cachesRoute.apiLive);
 app.get('/api/caches/search', cachesRoute.apiSearch);
 app.get('/api/caches/waypoints', cachesRoute.waypoints);
 app.get('/api/cache/:wp', cachesRoute.apiDetail);

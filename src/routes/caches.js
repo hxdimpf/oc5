@@ -126,3 +126,49 @@ export async function createLog(req, res) {
   const log = await ocInsertLog(cacheId, req.user.id, type, logDate, text);
   res.json({ saved: true, log });
 }
+
+export async function apiLive(req, res) {
+  const lat1 = parseFloat(req.query.lat1) || 0;
+  const lat2 = parseFloat(req.query.lat2) || 0;
+  const lon1 = parseFloat(req.query.lon1) || 0;
+  const lon2 = parseFloat(req.query.lon2) || 0;
+  const minDiff = parseInt(req.query.minDiff) || 2;
+  const maxDiff = parseInt(req.query.maxDiff) || 10;
+  if (lat1 >= lat2 || lon1 >= lon2) return res.json({ count: 0, items: [] });
+
+  const pool = (await import('../db.js')).default;
+  const sLat = Math.min(lat1, lat2), nLat = Math.max(lat1, lat2);
+  const wLon = Math.min(lon1, lon2), eLon = Math.max(lon1, lon2);
+
+  const rows = await pool.query(
+    `SELECT c.wp_oc, c.name, c.type, t.name AS typeName, c.size, s.name AS sizeName,
+     c.difficulty, c.terrain, c.status, c.date_created, c.user_id,
+     cl.lat AS listingLat, cl.lon AS listingLon, cc.lat AS ccLat, cc.lon AS ccLon,
+     u.username AS ownerAlias, u.username AS ownerCode,
+     (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
+     (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints
+     FROM caches c
+     JOIN cache_type t ON c.type=t.id
+     JOIN cache_size s ON c.size=s.id
+     JOIN cache_location cl ON c.cache_id=cl.cache_id
+     LEFT JOIN cache_coordinates cc ON c.cache_id=cc.cache_id
+     LEFT JOIN user u ON c.user_id=u.user_id
+     WHERE c.status IN (1,2) AND cl.lat BETWEEN ? AND ? AND cl.lon BETWEEN ? AND ?
+     AND (c.difficulty*2) BETWEEN ? AND ?
+     LIMIT 2000`,
+    [sLat, nLat, wLon, eLon, minDiff, maxDiff]
+  );
+
+  const items = rows.map(r => ({
+    referenceCode: r.wp_oc, name: r.name, lat: parseFloat(r.ccLat||r.listingLat), lon: parseFloat(r.ccLon||r.listingLon),
+    listingLat: parseFloat(r.listingLat), listingLon: parseFloat(r.listingLon),
+    geocacheType: { id: r.type, name: r.typeName }, geocacheSize: { id: r.size, name: r.sizeName },
+    difficulty: parseFloat(r.difficulty), terrain: parseFloat(r.terrain),
+    isArchived: false, isDisabled: r.status === 2, isFound: false,
+    ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
+    publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
+    favoritePoints: r.favoritePoints, findCount: r.findCount,
+    platform: 'OC', isOwned: false, isSelected: false, foundDate: '',
+  }));
+  res.json({ count: items.length, items });
+}
