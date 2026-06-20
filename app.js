@@ -49,7 +49,9 @@ try {
 app.use(auth);
 app.use((req, res, next) => {
   res.locals.locale = req.cookies?.oc_locale || 'en';
-  res.locals.i18n_json = JSON.stringify(i18n_data[res.locals.locale] || i18n_data['en'] || {});
+  const t = i18n_data[res.locals.locale] || i18n_data['en'] || {};
+  res.locals.i18n = t;
+  res.locals.i18n_json = JSON.stringify(t);
   res.locals.user = req.user;
   next();
 });
