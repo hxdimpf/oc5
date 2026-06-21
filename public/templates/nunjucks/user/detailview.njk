@@ -1,44 +1,55 @@
-{% extends 'base.njk' %}
-
-{% block title %}{{ profile.username or 'User Profile' }} — Opencaching.de{% endblock %}
-
-{% block i18n %}
-<script>window.OCI18n = {{ i18n_json | safe }};</script>
-{% endblock %}
+{% extends 'app/base.html.twig' %}
 
 {% block page_content %}
-<div class="container py-4">
-    {% if not profile %}
-    <div class="alert alert-warning">{{ i18n['user_not_found'] or 'User not found' }}</div>
-    {% else %}
-    <div class="row">
-        <div class="col-md-8">
-            <h1>{{ profile.username }}</h1>
-            <p class="text-muted">{{ i18n['joined'] or 'Joined' }}: {{ profile.date_created or '—' }}</p>
 
-            <div class="row mt-4 mb-4">
-                <div class="col-6 col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3>{{ profile.findCount or 0 }}</h3>
-                            <small class="text-muted">{{ i18n['finds'] or 'Finds' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3>{{ profile.hideCount or 0 }}</h3>
-                            <small class="text-muted">{{ i18n['hidden'] or 'Hidden' }}</small>
-                        </div>
-                    </div>
-                </div>
+    <div>
+        {% if user_by_id is defined %}
+            <h3><br/>{{ i18n['User details'] or 'User details' }}..</h3>
+
+            <div>
+                {% if user_by_id %}
+                    <br/>
+                    {{ i18n['Public information'] or 'Public information' }}:<br/>
+                    <ul>
+                        <li><b>{{ i18n['Details for user'] or 'Details for user' }}:</b> {{ user_by_id.username }}</li>
+                        <li><b>{{ i18n['Country'] or 'Country' }}:</b> {{ user_by_id.country }}</li>
+                        <li><b>{{ i18n['Last login'] or 'Last login' }}:</b> {{ user_by_id.last_login | date('d.m.Y') }}</li>
+                        <li><b>{{ i18n['Description'] or 'Description' }}:</b></li>
+                        <div style="border: 2px solid #000000;">{{ user_by_id.description | raw }}</div>
+                    </ul>
+
+                    {% if auth.isGranted('ROLE_TEAM') %}
+                        <br/>
+                        {{ i18n['Hidden information'] or 'Hidden information' }}:<br/>
+                        <ul>
+                            <li><b>{{ i18n['User ID'] or 'User ID' }}:</b> {{ user_by_id.user_id }}</li>
+                            <li><b>{{ i18n['Email'] or 'Email' }}:</b> {{ user_by_id.email }}</li>
+                            <li><b>{{ i18n['Email validity'] or 'Email validity' }}:</b> {% if user_by_id.email_problems %}&#x274C;
+                                {% else %}&#x2705;
+                                {% endif %}</li>
+                            <li><b>{{ i18n['Account created'] or 'Account created' }}:</b> {{ user_by_id.date_created | date('d.m.Y H:i:s') }}</li>
+                            <li><b>{{ i18n['Last change'] or 'Last change' }}:</b> {{ user_by_id.last_modified | date('d.m.Y H:i:s') }}</li>
+                            <li><b>{{ i18n['User active'] or 'User active' }}:</b> {% if user_by_id.is_active_flag %}&#x2705;{% else %}&#x274C;{% endif %}</li>
+                            <li><b>{{ i18n['Activation code'] or 'Activation code' }}
+                                    :</b> {% if user_by_id.activation_code %}{{ user_by_id.activation_code }}{% else %}
+                                    &#x274C;{% endif %}</li>
+                            <li><b>{{ i18n['First name'] or 'First name' }}:</b> {% if user_by_id.first_name %}{{ user_by_id.first_name }}{% else %}&#x274C;{% endif %}</li>
+                            <li><b>{{ i18n['Last name'] or 'Last name' }}:</b> {% if user_by_id.last_name %}{{ user_by_id.last_name }}{% else %}&#x274C;{% endif %}</li>
+                            <li><b>{{ i18n['GDPR deleted'] or 'GDPR deleted' }}:</b> {% if user_by_id.gdpr_deletion %}&#x2705;{% else %}&#x274C;{% endif %}</li>
+                        </ul>
+                    {% endif %}
+                {% else %}
+                    <br/><br/>
+                    <span>{{ i18n['No user found'] or 'No user found' }}.. :-(</span>
+                {% endif %}
             </div>
+        {% else %}
+            <br/><br/>
+            <span>{{ i18n['Something went wrong'] or 'Something went wrong' }}.. :-(</span>
+        {% endif %}
 
-            <h3>{{ i18n['recent_activity'] or 'Recent Activity' }}</h3>
-            <p class="text-muted">{{ i18n['activity_placeholder'] or 'Recent logs and cache finds will appear here.' }}</p>
-        </div>
     </div>
-    {% endif %}
-</div>
+
+    <hr>
+
 {% endblock %}
