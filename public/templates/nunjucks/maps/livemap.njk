@@ -39,9 +39,9 @@
     window.uniCacheWP = [];
     (function() {
         var p = new URLSearchParams(location.search);
-        window.lat         = p.has('lat')  ? parseFloat(p.get('lat'))  : 52.3759;
-        window.lon         = p.has('lon')  ? parseFloat(p.get('lon'))  : 9.7320;
-        window.defaultZoom = p.has('zoom') ? parseInt(p.get('zoom'))   : 13;
+        window.lat         = p.has('lat')  ? parseFloat(p.get('lat'))  : {{ initLat }};
+        window.lon         = p.has('lon')  ? parseFloat(p.get('lon'))  : {{ initLon }};
+        window.defaultZoom = p.has('zoom') ? parseInt(p.get('zoom'))   : {{ initZoom }};
     })();
 </script>
 {% endblock %}

@@ -108,7 +108,21 @@ app.get('/logout', (req, res) => {
   res.clearCookie('ocdevelopmentdata');
   res.redirect('/login');
 });
-app.get('/livemap', (req, res) => res.render('maps/livemap.njk'));
+app.get('/livemap', async (req, res) => {
+  // Use user's home coordinates if logged in, otherwise default to Hannover
+  let initLat = 52.3759, initLon = 9.7320, initZoom = 13;
+  if (req.user.id) {
+    try {
+      const pool = (await import('./src/db.js')).default;
+      const [user] = await pool.query('SELECT latitude, longitude FROM user WHERE user_id = ?', [req.user.id]);
+      if (user && user.latitude !== 0 && user.longitude !== 0) {
+        initLat = user.latitude;
+        initLon = user.longitude;
+      }
+    } catch (e) { /* fall back to defaults */ }
+  }
+  res.render('maps/livemap.njk', { initLat, initLon, initZoom });
+});
 
 app.get('/caches', cachesRoute.searchPage);
 app.get('/cache/new', cachesRoute.newCachePage);
