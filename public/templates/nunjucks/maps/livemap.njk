@@ -1,32 +1,51 @@
 {% extends 'base.njk' %}
 
-{% block title %}{{ i18n['livemap'] or 'Live Map' }} — Opencaching.de{% endblock %}
-
 {% block data_page %}livemap{% endblock %}
 {% block data_map_js %}true{% endblock %}
+{% block page_title %}{% endblock %}
+{% block page_subtitle %}{% endblock %}
 
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" href="/css/map.css">
 <style>
-#mapRoot {
-    height: calc(100vh - 56px);
-    width: 100%;
-    position: relative;
-}
+    body {
+        overflow: hidden;
+        height: 100vh;
+    }
+    main.content {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden;
+        min-height: 0;
+    }
+    #mapRoot {
+        width: 100%;
+        height: calc(100vh - var(--oc-navbar-height));
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+    footer { display: none !important; }
 </style>
 {% endblock %}
 
 {% block i18n %}
-<script>window.OCI18n = {{ i18n_json | safe }};</script>
+<script>Object.assign(window.OCI18n, {{ i18n_json | safe }});</script>
+{% endblock %}
+
+{% block after_body_start %}
+<script>
+    window.uniCacheWP = [];
+    (function() {
+        var p = new URLSearchParams(location.search);
+        window.lat         = p.has('lat')  ? parseFloat(p.get('lat'))  : 52.3759;
+        window.lon         = p.has('lon')  ? parseFloat(p.get('lon'))  : 9.7320;
+        window.defaultZoom = p.has('zoom') ? parseInt(p.get('zoom'))   : 13;
+    })();
+</script>
 {% endblock %}
 
 {% block page_content %}
-<script>
-    window.uniCacheWP = [];
-    window.lat = {{ lat | default(51.1657) }};
-    window.lon = {{ lon | default(10.4515) }};
-    window.defaultZoom = {{ defaultZoom | default(6) }};
-</script>
 <div id="mapRoot"></div>
 {% endblock %}
