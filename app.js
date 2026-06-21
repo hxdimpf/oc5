@@ -40,6 +40,11 @@ const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nu
 });
 // Add Twig-compatible filters and globals
 nunjucksEnv.addFilter('format', (str, ...args) => utilFormat(str, ...args));
+nunjucksEnv.addFilter('number_format', (num, decimals = 0, decSep = '.', thouSep = ',') => {
+  const fixed = Number(num).toFixed(decimals);
+  const [intPart, decPart] = fixed.split('.');
+  return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thouSep) + (decimals > 0 ? decSep + decPart : '');
+});
 nunjucksEnv.addGlobal('range', (start, end) => { const a = []; for (let i = start; i <= end; i++) a.push(i); return a; });
 
 // ── i18n: load translations once at startup ──
