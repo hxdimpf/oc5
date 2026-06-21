@@ -1,54 +1,118 @@
 {% extends 'base.njk' %}
 
-{% block title %}{{ i18n['search_caches'] or 'Search Caches' }} — Opencaching.de{% endblock %}
-
 {% block data_page %}searchcaches{% endblock %}
+{% block data_map_js %}true{% endblock %}
+
+{% block i18n %}
+<script>Object.assign(window.OCI18n, {{ i18n_json | safe }});</script>
+{% endblock %}
 
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
 <link rel="stylesheet" href="/css/tabulator_oc.css">
-{% endblock %}
-
-{% block i18n %}
-<script>window.OCI18n = {{ i18n_json | safe }};</script>
+<style>
+    .oc-filter-bar { background: var(--oc-bg-surface); padding: 1rem 1.25rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+    .actions-chevron { display: inline-block; transition: transform 0.2s ease; font-style: normal; }
+    #actionsToggle[aria-expanded="true"] .actions-chevron { transform: rotate(90deg); }
+    #mapRoot { width: 100%; }
+    footer { display: none !important; }
+</style>
 {% endblock %}
 
 {% block page_content %}
-<div class="container py-4">
-    <h1>{{ i18n['search_caches'] or 'Search Caches' }}</h1>
+<div class="container-fluid px-0">
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-2">
-                <div class="col-md-5">
-                    <input type="text" id="searchKeyword" class="form-control" placeholder="{{ i18n['search_placeholder'] or 'Cache name, waypoint, or owner...' }}">
+    <h4 class="mb-3">{{ i18n['Search caches'] or 'Search caches' }}</h4>
+
+    <div class="oc-filter-bar">
+        <form id="searchForm">
+            <div class="row g-2 align-items-start mb-2">
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1">{{ i18n['Keyword / WP code / owner'] or 'Keyword / WP code / owner' }}</label>
+                    <input type="text" id="fq" class="form-control" placeholder="{{ i18n['e.g. Forest, OC12345, username'] or 'e.g. Forest, OC12345, username' }}">
                 </div>
-                <div class="col-md-3">
-                    <select id="searchType" class="form-select">
-                        <option value="0">{{ i18n['all_types'] or 'All Types' }}</option>
+                <div class="col-12 col-md-3">
+                    <label class="form-label mb-1">{{ i18n['Near city'] or 'Near city' }}</label>
+                    <input type="text" id="fcity" class="form-control" placeholder="{{ i18n['e.g. Berlin, Hamburg'] or 'e.g. Berlin, Hamburg' }}">
+                    <div id="cityFeedback" class="form-text"></div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label mb-1">{{ i18n['Radius (km)'] or 'Radius (km)' }}</label>
+                    <select id="fradius" class="form-select">
+                        <option value="0">{{ i18n['— no limit —'] or '— no limit —' }}</option>
+                        <option value="5">5 km</option>
+                        <option value="10">10 km</option>
+                        <option value="25">25 km</option>
+                        <option value="50">50 km</option>
+                        <option value="100">100 km</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label mb-1">{{ i18n['Type'] or 'Type' }}</label>
+                    <select id="ftype" class="form-select">
+                        <option value="0">{{ i18n['All types'] or 'All types' }}</option>
                         {% for t in types %}
-                        <option value="{{ t.id }}">{{ t.name }}</option>
+                            <option value="{{ t.id }}">{{ t.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <select id="searchDifficulty" class="form-select">
-                        <option value="">{{ i18n['difficulty'] or 'Difficulty' }}</option>
-                        <option value="1-5">1.0 – 5.0</option>
-                        <option value="1-2">1.0 – 2.0</option>
-                        <option value="2-3">2.0 – 3.0</option>
-                        <option value="3-4">3.0 – 4.0</option>
-                        <option value="4-5">4.0 – 5.0</option>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label mb-1">{{ i18n['Min D'] or 'Min D' }}</label>
+                    <select id="fminDiff" class="form-select" style="width:72px">
+                        {% for v in ['1.0','1.5','2.0','2.5','3.0','3.5','4.0','4.5','5.0'] %}
+                            <option value="{{ v }}">{{ v }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button id="searchBtn" class="btn btn-primary w-100">{{ i18n['search'] or 'Search' }}</button>
+                <div class="col-auto">
+                    <label class="form-label mb-1">{{ i18n['Max D'] or 'Max D' }}</label>
+                    <select id="fmaxDiff" class="form-select" style="width:72px">
+                        {% for v in ['1.0','1.5','2.0','2.5','3.0','3.5','4.0','4.5','5.0'] %}
+                            <option value="{{ v }}" {% if v == '5.0' %}selected{% endif %}>{{ v }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
+                <div class="col d-flex align-items-center gap-3 flex-wrap pt-3">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="factiveOnly" checked>
+                        <label class="form-check-label" for="factiveOnly">{{ i18n['Active only'] or 'Active only' }}</label>
+                    </div>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="focOnly">
+                        <label class="form-check-label" for="focOnly">{{ i18n['OC only'] or 'OC only' }}</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-2 ms-md-auto">
+                    <button type="submit" class="btn btn-primary w-100">{{ i18n['Search'] or 'Search' }}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="statusBar" class="text-secondary small mb-1" style="min-height:1.4em;"></div>
+
+    <div id="actionsPanel" style="display:none;" class="mb-2">
+        <button id="actionsToggle" class="btn btn-sm btn-link text-secondary px-0 text-decoration-none"
+                type="button" data-bs-toggle="collapse" data-bs-target="#actionsList" aria-expanded="false">
+            <span class="actions-chevron me-1">▶</span>{{ i18n['Actions'] or 'Actions' }}
+        </button>
+        <div class="collapse" id="actionsList">
+            <div class="d-flex gap-2 flex-wrap mt-2 ms-3">
+                <button id="btnShowMap" class="btn btn-sm btn-outline-primary" type="button">
+                    ⊕ {{ i18n['Show on map'] or 'Show on map' }}
+                </button>
             </div>
         </div>
     </div>
 
-    <div id="search-results-table" style="min-height: 400px;"></div>
+    <div id="searchResults"></div>
+
 </div>
+{% endblock %}
+
+{% block page_content_after %}
+<div id="mapRoot"></div>
 {% endblock %}
