@@ -9,7 +9,7 @@
 ```mermaid
 flowchart TD
     U[Browser] --> NPM
-    CGEO[c:geo / third-party apps] --> D
+    CGEO[c:geo / third-party apps] --> R4
     NPM --> A
     NPM --> B
     NPM --> C
@@ -25,13 +25,14 @@ flowchart TD
         U
         CGEO
     end
-    subgraph NPM[Nginx Proxy Manager — reverse proxy — hostname routing — :80 :443]
+    subgraph NPM[&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nginx Proxy Manager&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]
+        direction LR
+        R4[&nbsp;&nbsp;okapi.baiti.net  →  OKAPI&nbsp;&nbsp;]
         R1[oc3.baiti.net  →  OC3]
         R2[oc4.baiti.net  →  OC4]
         R3[oc5.baiti.net  →  OC5]
-        R4[okapi.baiti.net  →  OKAPI]
     end
-    subgraph OC[Docker Network 'oc']
+    subgraph OC[Docker Network oc]
         A[OC3 — PHP 8.2 — Legacy]
         D[OKAPI — PHP 8.2 — REST API]
         B[OC4 — PHP 8.4 — Symfony — Twig]
