@@ -119,10 +119,10 @@ export async function ocGetCacheDetail(wp, userId) {
       c.difficulty / 2 AS difficulty, c.terrain / 2 AS terrain,
       c.country, c.date_hidden, c.date_created, c.wp_gc,
       c.type AS type_id, c.size AS size_id, c.status AS status_id,
-      c.search_time, c.way_length,
+      c.search_time, c.way_length, c.needs_maintenance, c.listing_outdated,
       IF(c.logpw != '', 1, 0) AS logpw, c.logpw AS cache_logpw,
       ct.en AS type_name, ct.svg_name, cs.name AS size_name,
-      cst.en AS status_name,
+      cst.en AS status_name, co_name.name AS country_name,
       u.user_id AS owner_id, u.username AS owner_name,
       u.date_created AS owner_joined,
       IFNULL(sc.found, 0) AS find_count,
@@ -143,6 +143,7 @@ export async function ocGetCacheDetail(wp, userId) {
      LEFT JOIN cache_logs fl ON fl.cache_id = c.cache_id AND fl.user_id = ? AND fl.type IN (1,7)
      LEFT JOIN coordinates pcn ON pcn.cache_id = c.cache_id AND pcn.user_id = ? AND pcn.type = 2
      LEFT JOIN caches_attributes oc_only ON oc_only.cache_id = c.cache_id AND oc_only.attrib_id = 6
+     LEFT JOIN countries co_name ON c.country = co_name.short
      WHERE c.wp_oc = ? GROUP BY c.cache_id`,
     [userId, userId, userId, wp]
   );
@@ -157,7 +158,7 @@ export async function ocGetCacheDetail(wp, userId) {
     pool.query(`SELECT ca.id, ca.name, ca.icon FROM caches_attributes cxa
       JOIN cache_attrib ca ON cxa.attrib_id = ca.id
       WHERE cxa.cache_id = ? ORDER BY ca.id`, [c.cache_id]),
-    pool.query(`SELECT cl.id, cl.type, DATE_FORMAT(cl.date, '%Y-%m-%d') AS date,
+    pool.query(`SELECT cl.id, cl.uuid, cl.type, cl.text_html, DATE_FORMAT(cl.date, '%Y-%m-%d') AS date,
       cl.text, u.username, u.user_id AS userId
       FROM cache_logs cl JOIN user u ON cl.user_id = u.user_id
       WHERE cl.cache_id = ? AND cl.gdpr_deletion = 0
@@ -172,7 +173,7 @@ export async function ocGetCacheDetail(wp, userId) {
   const [regionRow] = await pool.query('SELECT adm1 FROM cache_location WHERE cache_id=?', [c.cache_id]);
 
   const wpArr = (wpts || []).map(w => ({ latitude: Number(w.latitude), longitude: Number(w.longitude), description: w.description||'', typeId: w.type_id, type: w.type_name||'', name: w.type_name||'Waypoint', type_name: w.type_name||'', typeName: w.type_name||'', location: `${w.latitude}|${w.longitude}`,
-    icon: ({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id] ? `/_frontend/images/waypoints/${({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id]}` : '',
+    icon: ({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id] ? `/_frontend/images/waypoints/${({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id]}` : '',
     myCoords: decimalToDm(Number(w.latitude), Number(w.longitude)),
     prefix: (w.type_name||'WP').substring(0,2).toUpperCase() }));
 
@@ -190,6 +191,19 @@ export async function ocGetCacheDetail(wp, userId) {
   }
   const sanitizedDescription = descriptionHtml;
 
+  // Compute isDNF / dnfDate from logs (matching OC4's UniCacheBuilder logic)
+  const LOG_TYPE_NAMES = { 1: 'Found it', 2: "Didn't find it", 3: 'Comment', 7: 'Attended', 8: 'Will attend', 9: 'Archived', 10: 'Ready to search', 11: 'Temporarily unavailable' };
+  let isNotFound = false, dnfDateVal = null;
+  if (userId) {
+    for (const l of logs) {
+      if (Number(l.userId) !== userId) continue;
+      if (Number(l.type) === 2) { isNotFound = true; if (!dnfDateVal) dnfDateVal = l.date; }
+      if (isNotFound) break;
+    }
+  }
+  const isDNF = !c.is_found && isNotFound;
+  if (isNotFound && !dnfDateVal) dnfDateVal = 'DNF';
+
   return {
     referenceCode: c.wp_oc, name: c.name, shortName: (c.name||'').length > 25 ? (c.name||'').slice(0,25)+'…' : (c.name||''),
     geocacheType: { id: c.type_id, name: c.type_name, svgName: c.svg_name },
@@ -201,26 +215,27 @@ export async function ocGetCacheDetail(wp, userId) {
     wpGc: c.wp_gc || '', ownerCode: c.owner_name || '',
     logpw: c.cache_logpw || (noteRows[0]?.logpw) || '', requiresPasswd: !!c.logpw,
     searchTime: Number(c.search_time) || 0,
-    owner: { id: c.owner_id, username: c.owner_name, joinedDate: fmtDate(c.owner_joined), joinedDateFmt: fmtDate(c.owner_joined),
+    owner: { userId: c.owner_id, username: c.owner_name, joinedDateFmt: fmtDate(c.owner_joined),
       findCount: ownerStats ? Number(ownerStats.found) : 0, hideCount: ownerStats ? Number(ownerStats.hidden) : 0, profileUrl: `/user/profile/${c.owner_id}` },
     hints: d?.hint || '', descDarkUnsafe: d?.desc_dark_unsafe || false,
     sanitizedDescription, additionalWaypoints: wpArr,
     attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/_frontend/images/attributes/${a.icon}.png` : '' })),
-    logs, _context: { userId, userName: 'hxdimpf', isOwner: !!c.is_owned },
-    isOwned: !!c.is_owned, isFound: !!c.is_found, isDNF: false,
+    logs: logs.map(l => ({ id: Number(l.id), uuid: l.uuid, type: Number(l.type), typeName: LOG_TYPE_NAMES[Number(l.type)] || String(l.type), date: l.date, username: l.username, text: l.text || '', textHtml: !!(l.text_html), itsMine: userId > 0 && Number(l.userId) === userId })),
+    _context: { userId, userName: 'hxdimpf', isOwner: !!c.is_owned },
+    isOwned: !!c.is_owned, isFound: !!c.is_found, isDNF,
     foundDate: c.found_date ? fmtDate(c.found_date) : null, foundDateFmt: c.found_date ? fmtDate(c.found_date) : '',
-    dnfDate: null, dnfDateFmt: '',
+    dnfDate: dnfDateVal !== 'DNF' ? dnfDateVal : null, dnfDateFmt: dnfDateVal !== 'DNF' ? (dnfDateVal || '') : '',
     hasCC: !!c.has_cc, hasPCN: !!c.has_pcn, pcn: noteRows[0]?.description || null,
     findCount: Number(c.find_count), favoritePoints: Number(c.rating_count),
     isWatched: false, isCached: false, isGuessable: false, isPartial: false, isSelected: false,
-    location: { country: c.country||'', state: regionRow?.adm1||'' },
+    location: { country: c.country_name || c.country || '', state: regionRow?.adm1 || '', countryCode: c.country || '' },
     postedCoordinates: { latitude: Number(c.latitude), longitude: Number(c.longitude) },
     postedCoordsFmt: decimalToDm(Number(c.latitude), Number(c.longitude)),
     correctedCoordinates: c.has_cc ? { latitude: Number(c.cc_lat||0), longitude: Number(c.cc_lon||0) } : null,
     correctedCoordsFmt: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
     placedDateFmt: fmtDate(c.date_hidden), publishedDate: fmtDate(c.date_created), publishedDateFmt: fmtDate(c.date_created),
     isOcOnly: !!c.is_oc_only, isArchived: c.status_id===3, isDisabled: c.status_id===2,
-    isFavorited: false, listingOutdated: false, needsMaintenance: false,
+    isFavorited: false, listingOutdated: !!(c.listing_outdated), needsMaintenance: !!(c.needs_maintenance),
     ianaTimezoneId: 'Europe/Berlin', logTypes: [],
   };
 }
