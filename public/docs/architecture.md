@@ -10,6 +10,10 @@
 flowchart TD
     U[Browser] --> NPM
     CGEO[c:geo / third-party apps] --> D
+    NPM --> A
+    NPM --> B
+    NPM --> C
+    NPM --> D
     A --> E
     B --> E
     C --> E
@@ -22,14 +26,18 @@ flowchart TD
         CGEO
     end
     subgraph NPM[Nginx Proxy Manager — reverse proxy — hostname routing — :80 :443]
-        A[OC3 — PHP 8.2]
-        D[OKAPI — PHP 8.2]
-        B[OC4 — PHP 8.4 — Twig]
-        C[OC5 — Node 22 — Nunjucks]
+        R1[oc3.baiti.net  →  OC3]
+        R2[oc4.baiti.net  →  OC4]
+        R3[oc5.baiti.net  →  OC5]
+        R4[okapi.baiti.net  →  OKAPI]
     end
-    subgraph OC[Docker Network oc]
+    subgraph OC[Docker Network 'oc']
+        A[OC3 — PHP 8.2 — Legacy]
+        D[OKAPI — PHP 8.2 — REST API]
+        B[OC4 — PHP 8.4 — Symfony — Twig]
+        C[OC5 — Node 22 — Express — Nunjucks]
         E[(MariaDB — 119 tables)]
-        F[oc-frontend submodule — shared JS/CSS]
+        F[oc-frontend submodule]
     end
 ```
 
