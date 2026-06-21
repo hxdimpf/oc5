@@ -172,7 +172,7 @@ export async function ocGetCacheDetail(wp, userId) {
   const [regionRow] = await pool.query('SELECT adm1 FROM cache_location WHERE cache_id=?', [c.cache_id]);
 
   const wpArr = (wpts || []).map(w => ({ latitude: Number(w.latitude), longitude: Number(w.longitude), description: w.description||'', typeId: w.type_id, type: w.type_name||'', name: w.type_name||'Waypoint', type_name: w.type_name||'', typeName: w.type_name||'', location: `${w.latitude}|${w.longitude}`,
-    icon: ({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id] ? `/images/waypoints/${({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id]}` : '',
+    icon: ({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id] ? `/_frontend/images/waypoints/${({1:'wp_parking.png',2:'wp_path.png',3:'wp_poi.png',4:'wp_reference.png',5:'wp_final.png',6:'wp_note.png'})[w.type_id]}` : '',
     myCoords: decimalToDm(Number(w.latitude), Number(w.longitude)),
     prefix: (w.type_name||'WP').substring(0,2).toUpperCase() }));
 
