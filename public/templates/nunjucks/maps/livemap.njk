@@ -8,6 +8,13 @@
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" href="/css/map.css">
+<style>
+#mapRoot {
+    height: calc(100vh - 56px);
+    width: 100%;
+    position: relative;
+}
+</style>
 {% endblock %}
 
 {% block i18n %}
@@ -16,9 +23,10 @@
 
 {% block page_content %}
 <script>
+    window.uniCacheWP = [];
     window.lat = {{ lat | default(51.1657) }};
     window.lon = {{ lon | default(10.4515) }};
     window.defaultZoom = {{ defaultZoom | default(6) }};
 </script>
-<div id="mapRoot" style="width:100%; height:calc(100vh - 120px); position:relative;"></div>
+<div id="mapRoot"></div>
 {% endblock %}
