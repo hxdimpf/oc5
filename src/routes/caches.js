@@ -267,7 +267,8 @@ export async function apiLive(req, res) {
      IF(fl.id IS NOT NULL, 1, 0) AS isFound,
      IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
      IF(pcn.id IS NOT NULL AND (pcn.latitude != 0 OR pcn.longitude != 0), 1, 0) AS hasCC,
-     pcn.latitude AS ccLat, pcn.longitude AS ccLon
+     pcn.latitude AS ccLat, pcn.longitude AS ccLon,
+     pcn.description AS pcnText
      FROM caches c
      JOIN cache_type t ON c.type=t.id
      JOIN cache_size s ON c.size=s.id
@@ -295,7 +296,7 @@ export async function apiLive(req, res) {
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
     shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
     platform: 'OC', isOwned: (userId && r.user_id === userId), isSelected: false,
-    isOcOnly: !!r.isOcOnly, pcn: '',
+    isOcOnly: !!r.isOcOnly, pcn: r.pcnText || '',
   }));
   res.json({ count: items.length, items });
 }
