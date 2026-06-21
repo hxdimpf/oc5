@@ -53,6 +53,17 @@ The three frontends (OC3/OC4/OC5) serve HTML pages to browsers only.
 
 NPM routes by Host header. All containers share a single Docker network and MariaDB.
 
+**Three environments, two frontends.** OC3 retains its original frontend (Smarty
+templates, jQuery, webpack/encore). OC4 and OC5 share a single frontend codebase
+via the `oc-frontend` git submodule — 27 ES modules, CSS, and vendor libraries
+(Leaflet, Tabulator, Bootstrap). Adding a third environment (OC5) did not add a
+third frontend: any JS fix committed to the submodule benefits both OC4 and OC5
+simultaneously.
+
+In the previous ddev-based setup, OC3 and OC4 each had their own entirely separate
+frontend code. Now three environments share two frontends, and the trend is toward
+one.
+
 ---
 
 ## 2. OC4 — PHP / Symfony 7.x
