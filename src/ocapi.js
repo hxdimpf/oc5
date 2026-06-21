@@ -205,7 +205,7 @@ export async function ocGetCacheDetail(wp, userId) {
       findCount: ownerStats ? Number(ownerStats.found) : 0, hideCount: ownerStats ? Number(ownerStats.hidden) : 0, profileUrl: `/user/profile/${c.owner_id}` },
     hints: d?.hint || '', descDarkUnsafe: d?.desc_dark_unsafe || false,
     sanitizedDescription, additionalWaypoints: wpArr,
-    attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/images/attributes/${a.icon}.png` : '' })),
+    attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/_frontend/images/attributes/${a.icon}.png` : '' })),
     logs, _context: { userId, userName: 'hxdimpf', isOwner: !!c.is_owned },
     isOwned: !!c.is_owned, isFound: !!c.is_found, isDNF: false,
     foundDate: c.found_date ? fmtDate(c.found_date) : null, foundDateFmt: c.found_date ? fmtDate(c.found_date) : '',
