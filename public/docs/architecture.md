@@ -217,10 +217,53 @@ Idempotent — can be re-run safely. The playbook is the source of truth; every 
 
 ---
 
-## 8. Key Takeaways
+## 8. Scaling & Horizontal Operation
+
+OC5 is stateless — session data lives in the cookie and MariaDB, not in memory.
+Templates are read-only on disk. No sticky sessions, no shared state between instances.
+
+```
+            Browser
+               │
+         NPM (load balancer)
+          ├── oc5-1:3000
+          ├── oc5-2:3000
+          ├── oc5-3:3000
+          └── oc5-4:3000
+               │
+          MariaDB (single shared instance, handles connection pooling per container)
+```
+
+One command to scale: `docker compose --scale oc5=4 up -d`.  
+NPM distributes requests across all instances. Any instance can handle any request.
+Rollouts are gradual — scale up new instances, then scale down old ones.
+
+| Scaling dimension | OC4 (PHP/Apache) | OC5 (Node.js/Express) |
+|---|---|---|
+| Concurrency model | One process per request (PHP-FPM pool) | Single event loop handles thousands of connections |
+| Horizontal unit | 344 MB container (Apache + PHP + Symfony) | **163 MB** container (Node + 8 npm deps) |
+| Startup time | Composer autoload + Symfony container compile | npm install + Node boot (seconds) |
+| DB connections | Each PHP worker opens its own | One connection pool per container, reused across all requests |
+| Zero-downtime deploy | Cache clear dance, Apache graceful reload | Scale up new, scale down old via Docker |
+| Shared state | None (stateless) | None (stateless) — same cookie, same DB |
+| Sticky sessions required? | No | No (session UUID validated against DB) |
+
+**OC5 advantage**: half the memory per instance, faster startup, no PHP-FPM pool tuning,
+no Symfony container compilation, no Apache config. The event loop handles concurrency
+natively — a single Node process does the work of dozens of PHP-FPM workers. Horizontal
+scaling is a one-liner with Docker Compose, and NPM already provides the load balancing.
+
+The bottleneck remains MariaDB. Scaling OC5 horizontally increases concurrent DB
+connections — the solution is connection pooling per container (already in `src/db.js`)
+rather than per request. PHP has no equivalent without external tools.
+
+---
+
+## 9. Key Takeaways
 
 - Two independent backends (PHP + Node.js) sharing one frontend codebase.
 - **OC5 is half the size, half the dependencies, half the deploy steps.**
+- OC5 scales horizontally with zero code changes — `docker compose --scale`.
 - Shared oc-frontend submodule — every JS improvement benefits both stacks simultaneously.
 - Template pipeline: OC4 Twig → mechanical conversion → OC5 Nunjucks. Never diverged.
 - Deterministic deploy: one Ansible command from bare VM to running production.
