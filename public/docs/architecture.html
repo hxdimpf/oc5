@@ -50,8 +50,8 @@ graph TD
     end
     subgraph OC["Docker Network 'oc'"]
         A[OC3<br>PHP 8.2<br>Apache<br>Legacy]
-        B[OC4<br>PHP 8.4<br>Apache<br>Symfony 7]
-        C[OC5<br>Node 22<br>Express 5<br>Nunjucks]
+        B[OC4<br>PHP 8.4<br>Apache<br>Symfony 7<br><b>Twig templates</b>]
+        C[OC5<br>Node 22<br>Express 5<br><b>Nunjucks</b>]
         D[OKAPI<br>PHP 8.2<br>Apache<br>REST API]
         E[(MariaDB 10.11<br>119 tables)]
         F[oc-frontend<br>git submodule<br>27 JS modules<br>shared by OC4+OC5]
@@ -61,6 +61,7 @@ graph TD
     A & B & C & D --> E
     B -.-> F
     C -.-> F
+    B -->|"convert-twig.sh"| C
   </div>
   <p class="small">7 stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi</p>
 </section>
