@@ -56,7 +56,7 @@ export async function ocSearchCachesByBox(lat1, lat2, lon1, lon2, minDiff, maxDi
       IF(fl.id IS NOT NULL, 1, 0) AS isFound,
       MAX(fl.date) AS foundDate,
       IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
-      IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS hasCC,
+      IF(pcn.id IS NOT NULL AND (pcn.latitude != 0 OR pcn.longitude != 0), 1, 0) AS hasCC,
       pcn.latitude AS ccLat, pcn.longitude AS ccLon,
       pcn.description AS pcnText,
       IF(oc_only.cache_id IS NOT NULL, 1, 0) AS isOcOnly
@@ -131,7 +131,7 @@ export async function ocGetCacheDetail(wp, userId) {
       IF(fl.id IS NOT NULL, 1, 0) AS is_found,
       MAX(fl.date) AS found_date,
       IF(pcn.id IS NOT NULL, 1, 0) AS has_pcn,
-      IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS has_cc,
+      IF(pcn.id IS NOT NULL AND (pcn.latitude != 0 OR pcn.longitude != 0), 1, 0) AS has_cc,
       pcn.latitude AS cc_lat, pcn.longitude AS cc_lon,
       IF(oc_only.cache_id IS NOT NULL, 1, 0) AS is_oc_only
      FROM caches c
@@ -210,8 +210,8 @@ export async function ocGetCacheDetail(wp, userId) {
     geocacheSize: { id: c.size_id, name: c.size_name },
     difficulty: Number(c.difficulty), terrain: Number(c.terrain),
     status: c.status_name || 'Active',
-    lat: c.has_cc && c.cc_lat ? Number(c.cc_lat) : Number(c.latitude),
-    lon: c.has_cc && c.cc_lon ? Number(c.cc_lon) : Number(c.longitude),
+    lat: c.has_cc ? Number(c.cc_lat) : Number(c.latitude),
+    lon: c.has_cc ? Number(c.cc_lon) : Number(c.longitude),
     wpGc: c.wp_gc || '', ownerCode: c.owner_name || '',
     logpw: c.cache_logpw || (noteRows[0]?.logpw) || '', requiresPasswd: !!c.logpw,
     searchTime: Number(c.search_time) || 0,

@@ -151,7 +151,7 @@ export async function apiLive(req, res) {
      IF(oc6.cache_id IS NOT NULL, 1, 0) AS isOcOnly,
      IF(fl.id IS NOT NULL, 1, 0) AS isFound,
      IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
-     IF(pcn.id IS NOT NULL AND pcn.latitude != 0 AND pcn.longitude != 0, 1, 0) AS hasCC
+     IF(pcn.id IS NOT NULL AND (pcn.latitude != 0 OR pcn.longitude != 0), 1, 0) AS hasCC
      FROM caches c
      JOIN cache_type t ON c.type=t.id
      JOIN cache_size s ON c.size=s.id
@@ -168,7 +168,7 @@ export async function apiLive(req, res) {
 
   const items = rows.map(r => ({
     _id: r.wp_oc, referenceCode: r.wp_oc, name: r.name,
-    lat: Number(r.ccLat||r.listingLat), lon: Number(r.ccLon||r.listingLon),
+    lat: r.hasCC ? Number(r.ccLat) : Number(r.listingLat), lon: r.hasCC ? Number(r.ccLon) : Number(r.listingLon),
     listingLat: Number(r.listingLat), listingLon: Number(r.listingLon),
     geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
     difficulty: Number(r.difficulty)/2, terrain: Number(r.terrain)/2,
