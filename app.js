@@ -3,7 +3,6 @@ import nunjucks from 'nunjucks';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { format as utilFormat } from 'util';
-import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 
 import auth from './src/auth.js';
@@ -26,9 +25,6 @@ app.use((req, res, next) => {
 });
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// Rate limit auth endpoints
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Too many attempts, please try again later.' });
 
 // Static assets — submodule content at /_frontend and root (for loader.js root-relative paths)
 app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend/public')));
@@ -82,7 +78,7 @@ function backofficeGuard(req, res, next) {
 
 app.get('/', indexRoute.home);
 app.get('/login', (req, res) => res.render('login.njk'));
-app.post('/login', authLimiter, async (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const last_username = username || '';
   if (!username || !password) {
