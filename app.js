@@ -2,7 +2,6 @@ import express from 'express';
 import nunjucks from 'nunjucks';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 
@@ -26,22 +25,6 @@ app.use((req, res, next) => {
 });
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(helmet({
-  // Dev environment — disable HSTS and auto-HTTPS upgrades (self-signed cert)
-  strictTransportSecurity: false,
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],  // theme flash + Nunjucks inline scripts
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https://wiki.opencaching.de", "*.tile.openstreetmap.org"],
-      connectSrc: ["'self'", "*.tile.openstreetmap.org", "nominatim.openstreetmap.org"],
-      upgradeInsecureRequests: null,  // don't auto-upgrade HTTP→HTTPS (dev with self-signed cert)
-    },
-  },
-  crossOriginOpenerPolicy: false,
-  originAgentCluster: false,
-}));
 
 // Rate limit auth endpoints
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Too many attempts, please try again later.' });
