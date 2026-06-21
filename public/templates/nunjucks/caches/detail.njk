@@ -1,77 +1,215 @@
 {% extends 'base.njk' %}
 
-{% block title %}{{ cache.name or wp }} — Opencaching.de{% endblock %}
-
 {% block data_page %}cache{% endblock %}
 {% block data_map_js %}true{% endblock %}
 
+{% block after_body_start %}
+<script>
+    window.uniCacheWP = [];
+    window.defaultZoom = 14;
+</script>
+{% endblock %}
+
 {% block stylesheets %}
 {{ super() }}
-<link rel="stylesheet" href="/css/map.css">
 <link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
 <link rel="stylesheet" href="/css/tabulator_oc.css">
+<link rel="stylesheet" href="/css/map.css">
+<style>
+    .loading-indicator { display:flex; align-items:center; gap:10px; padding:20px; color:var(--oc-text-secondary); font-size:0.95em; }
+    .loading-indicator .spinner { width:20px; height:20px; border:2px solid var(--oc-gray-400); border-top-color:var(--oc-link-color); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .skeleton { background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size:200% 100%; animation:skeleton-loading 1.5s infinite; border-radius:4px; }
+    [data-theme="dark"] .skeleton { background:linear-gradient(90deg,var(--oc-gray-200) 25%,var(--oc-gray-100) 50%,var(--oc-gray-200) 75%); background-size:200% 100%; }
+    @keyframes skeleton-loading { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skeleton-text  { height:1em; margin:0.5em 0; }
+    .skeleton-block { height:200px; }
+
+    #cache-error { display:none; padding:20px; background:var(--oc-danger); color:#fff; border-radius:8px; margin:20px 0; }
+
+    .oc-detail-table { width:100%; max-width:100%; border-collapse:collapse; table-layout:fixed; background-color:var(--oc-table-bg); color:var(--oc-text-primary); }
+    .oc-detail-table th, .oc-detail-table td { border:1px solid var(--oc-table-border); padding:3px 10px; word-wrap:break-word; overflow-wrap:break-word; font-size:1em; }
+    .oc-detail-table th { font-size:1.1em; }
+    .oc-detail-table tr:first-child th, .oc-detail-table tr:first-child td { border-top:none; }
+    .oc-detail-table tr:last-child td { border-bottom:none; }
+    .oc-detail-table th:first-child, .oc-detail-table td:first-child { border-left:none; }
+    .oc-detail-table th:last-child,  .oc-detail-table td:last-child  { border-right:none; }
+
+    .oc-cache-header { text-align:center; background-color:var(--oc-gray-400); padding:10px; }
+    [data-theme="dark"] .oc-cache-header { background-color:var(--oc-gray-200); }
+
+    input[type="text"].oc-coords-input {
+        border:none; text-align:left; vertical-align:middle;
+        width:12em; overflow:hidden; display:inline-block;
+        padding:0; margin:0;
+        background-color:var(--oc-bg-body); color:var(--oc-text-primary);
+    }
+    .oc-nowrap { white-space: nowrap; }
+
+    .pcnTextarea { border:none; resize:none; overflow:hidden; font-family:"Courier New",monospace; width:100%; background-color:var(--oc-bg-surface); font-size:0.9em; padding:5px 10px; color:var(--oc-text-primary); }
+    .logTextarea { border:none; resize:none; overflow:hidden; width:100%; background-color:var(--oc-input-bg); font-family:inherit; font-size:1em; padding:3px; color:var(--oc-text-primary); }
+
+    .attribute-container { width:35px; height:35px; object-fit:cover; border-radius:8px; }
+
+    #cache-description { overflow:hidden; word-wrap:break-word; overflow-wrap:break-word; }
+    #cache-description img { max-width:100%; height:auto; }
+    #cache-description *, #cache-description { max-width:100%; box-sizing:border-box; position:static !important; float:none !important; }
+    #cache-description table { table-layout:fixed; width:100%; }
+    #cache-description pre  { white-space:pre-wrap; overflow-x:auto; }
+
+    [data-theme="dark"] #cache-description.cache-description-light-island {
+        background: #fff;
+        color: #222;
+        color-scheme: light;
+        padding: 0.75rem 1rem;
+        border-radius: 0.25rem;
+    }
+    [data-theme="dark"] #cache-description.cache-description-light-island a { color: #06c; }
+
+    #logsTable .tabulator, #wptTable .tabulator { border:none !important; background:transparent !important; }
+    #logsTable .tabulator-row { background:transparent !important; }
+    #logsTable .tabulator-cell, #logsTable .tabulator-row { border:none !important; padding:0 !important; }
+    #wptTable  .tabulator-cell, #wptTable  .tabulator-row { border:none !important; padding:0 !important; }
+    .tabulator-cell div { margin:0 !important; padding:0 !important; width:100% !important; }
+    .wrap-text { word-wrap:break-word; white-space:pre-line; }
+    .row-transparent { background:transparent !important; }
+
+    #explore-container > .container-fluid > .row { display:flex !important; flex-wrap:wrap !important; }
+    #explore-container > .container-fluid > .row > .col-md-4 { overflow:hidden; }
+    @media (max-width:767.98px) {
+        #explore-container > .container-fluid > .row > .col-md-4,
+        #explore-container > .container-fluid > .row > .col-md-8 { flex:0 0 100% !important; max-width:100% !important; }
+    }
+
+    #mapRoot { height: calc(100vh - var(--oc-navbar-height)); width:100%; }
+    footer { display: none !important; }
+</style>
 {% endblock %}
 
 {% block i18n %}
-<script>window.OCI18n = {{ i18n_json | safe }};</script>
-{% if cache_json %}<script>window.uniCacheWP = {{ cache_json | safe }};</script>{% endif %}
-<script>window.defaultZoom = 14;</script>
+<script>Object.assign(window.OCI18n, {{ i18n_json | safe }});</script>
 {% endblock %}
 
 {% block page_content %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-lg-8">
-            {# Cache header #}
-            <div id="cache-header">
-                <h1>{% if cache %}{{ cache.name }}{% else %}{{ wp }}{% endif %}</h1>
-                <p class="text-muted">{{ wp }}</p>
+<div id="explore-container" data-code="{{ wp }}">
+
+    <div id="cache-error"></div>
+
+    <div class="container-fluid px-0">
+        <div class="row">
+
+            <!-- Left column: Cache details -->
+            <div class="col-md-4 col-lg-4">
+
+                <div id="cache-skeleton" class="mt-2">
+                    <div class="skeleton skeleton-text" style="width:80%"></div>
+                    <div class="skeleton skeleton-text" style="width:60%"></div>
+                    <div class="skeleton skeleton-block"></div>
+                </div>
+
+                <script id="gcState" type="application/json">{}</script>
+
+                <div id="editCacheBtn" style="display:none; margin-bottom:8px;">
+                    <a id="editCacheLink" class="btn btn-sm btn-outline-primary" href="#">{{ i18n['Edit cache'] or 'Edit cache' }}</a>
+                </div>
+
+                <table id="cache-table" class="oc-detail-table" style="display:none">
+                    <tr>
+                        <th colspan="2" class="oc-cache-header">
+                            <span id="cacheIcon"></span>
+                            <a id="cacheNameLink" href="#" style="color:var(--oc-text-primary)"></a>
+                        </th>
+                    </tr>
+                    <tr><td>{{ i18n['Reference'] or 'Reference' }}</td><td><a id="cacheRefLink" href="#" target="_blank"></a> <span id="cacheStatus"></span></td></tr>
+                    <tr><td>{{ i18n['Country'] or 'Country' }}</td><td id="cacheCountry"></td></tr>
+                    <tr><td>{{ i18n['State/Province'] or 'State/Province' }}</td><td id="cacheState"></td></tr>
+                    <tr><td class="oc-nowrap">{{ i18n['Listing Coords'] or 'Listing Coords' }}</td><td id="cachePostedCoords"></td></tr>
+                    <tr>
+                        <td class="oc-nowrap">{{ i18n['Corrected Coords'] or 'Corrected Coords' }}</td>
+                        <td class="oc-nowrap">
+                            <input type="text" class="oc-coords-input" id="editCoords" maxlength="22" value="" autocomplete="off" spellcheck="false">
+                        </td>
+                    </tr>
+                    <tr id="logPasswdRow" style="display:none">
+                        <td class="oc-nowrap">{{ i18n['Log Password'] or 'Log Password' }}</td>
+                        <td>
+                            <input type="text" class="oc-coords-input" id="editLogPasswd" maxlength="50" value="" autocomplete="off">
+                        </td>
+                    </tr>
+                    <tr><td>{{ i18n['Type'] or 'Type' }}</td><td id="cacheType"></td></tr>
+                    <tr><td>{{ i18n['D / T'] or 'D / T' }}</td><td id="cacheDT"></td></tr>
+                    <tr><td>{{ i18n['Find Count'] or 'Find Count' }}</td><td id="cacheFindCount"></td></tr>
+                    <tr><td>{{ i18n['Recommendations'] or 'Recommendations' }}</td><td id="cacheFavorites"></td></tr>
+                    <tr><td>{{ i18n['Placed / Hidden'] or 'Placed / Hidden' }}</td><td id="cachePlacedDate"></td></tr>
+                    <tr><td>{{ i18n['Published'] or 'Published' }}</td><td id="cachePublishedDate"></td></tr>
+                    <tr id="cacheTimeRow" style="display:none"><td>{{ i18n['Time required'] or 'Time required' }}</td><td id="cacheTime"></td></tr>
+                    <tr id="foundRow" style="display:none"><td id="foundLabel">{{ i18n['Found Date'] or 'Found Date' }}</td><td id="cacheFoundDate"></td></tr>
+                    <tr id="gcCodeRow" style="display:none"><td>{{ i18n['GC Code'] or 'GC Code' }}</td><td id="cacheGcCode"></td></tr>
+                    <tr id="maintenanceRow" style="display:none"><td></td><td><span class="text-warning">⚠ {{ i18n['Needs maintenance'] or 'Needs maintenance' }}</span></td></tr>
+                    <tr id="outdatedRow"    style="display:none"><td></td><td><span class="text-warning">⚠ {{ i18n['Listing outdated'] or 'Listing outdated' }}</span></td></tr>
+                    <tr>
+                        <td rowspan="2" style="vertical-align:top">{{ i18n['Owner'] or 'Owner' }}</td>
+                        <td id="cacheOwner"></td>
+                    </tr>
+                    <tr><td id="cacheOwnerStats"></td></tr>
+                    <tr id="hintRow" style="display:none"><td colspan="2" valign="top" id="cacheHint"></td></tr>
+                </table>
+
             </div>
 
-            {# Tab navigation #}
-            <ul class="nav nav-tabs mb-3" id="cacheTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-pane" type="button">Description</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-pane" type="button">Logs</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="waypoints-tab" data-bs-toggle="tab" data-bs-target="#waypoints-pane" type="button">Waypoints</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-pane" type="button">Images</button>
-                </li>
-            </ul>
+            <!-- Right column: Description and logs -->
+            <div class="col-md-8 col-lg-8">
 
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="desc-pane">
-                    <div id="cache-description">Loading...</div>
-                </div>
-                <div class="tab-pane fade" id="logs-pane">
-                    <div id="cache-logs">Loading...</div>
-                </div>
-                <div class="tab-pane fade" id="waypoints-pane">
-                    <div id="cache-waypoints">Loading...</div>
-                </div>
-                <div class="tab-pane fade" id="images-pane">
-                    <div id="cache-images">Loading...</div>
-                </div>
-            </div>
-        </div>
+                <div id="description-skeleton" class="skeleton skeleton-block mb-3"></div>
+                <div id="cache-description" class="mb-3" style="display:none"></div>
 
-        <div class="col-lg-4">
-            {# Sidebar: map + info #}
-            <div class="card mb-3">
-                <div id="mapRoot" style="height: 300px;"></div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-body" id="cache-sidebar-info">
-                    <p><em>Loading cache info...</em></p>
+                <div class="mb-3">
+                    <div class="row" id="attributes"></div>
                 </div>
+
+                <div class="mb-3">
+                    <h5 id="additionalWP" class="p-2 bg-secondary text-white d-none">{{ i18n['Additional Waypoints'] or 'Additional Waypoints' }}</h5>
+                    <div id="wptTable"></div>
+                </div>
+
+                <div class="mb-3">
+                    <h5 class="p-2 bg-secondary text-white">{{ i18n['Personal Cache Notes'] or 'Personal Cache Notes' }}</h5>
+                    <textarea class="pcnTextarea" id="editPCN"></textarea>
+                </div>
+
+                <div id="editLog" style="display:none" class="mb-3">
+                    <h5 id="editLogHeader" class="p-2 bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <span id="editLogHeaderText"></span>
+                        <button id="deleteLogBtn" class="btn btn-sm btn-outline-danger" style="display:none">{{ i18n['Delete Log'] or 'Delete Log' }}</button>
+                    </h5>
+                    <textarea class="logTextarea" id="editLogText"></textarea>
+                    <div id="editLogControls" style="visibility:hidden" class="d-flex gap-2 align-items-center mt-2 flex-wrap">
+                        <input id="editLogDate" class="form-control w-auto" type="text" maxlength="24">
+                        <select id="editLogType" class="form-select w-auto"></select>
+                        <button id="editLogSave" class="btn btn-sm btn-danger">{{ i18n['Save'] or 'Save' }}</button>
+                        <div id="editLogCheckboxWrapper" style="display:none">
+                            <input type="checkbox" id="editLogCheckbox">
+                            <label for="editLogCheckbox">{{ i18n['New Log'] or 'New Log' }}</label>
+                        </div>
+                        <span id="editLogMsg" style="color:var(--oc-danger);font-size:0.85em"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h5 class="p-2 bg-secondary text-white">{{ i18n['Latest Logs'] or 'Latest Logs' }}</h5>
+                    <div id="logsLoading" class="loading-indicator">
+                        <span class="spinner"></span>
+                        {{ i18n['Loading logs...'] or 'Loading logs...' }}
+                    </div>
+                    <div id="logsTable"></div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_content_after %}
+<div id="mapRoot"></div>
 {% endblock %}

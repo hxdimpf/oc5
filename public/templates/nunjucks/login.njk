@@ -1,44 +1,248 @@
 {% extends 'base.njk' %}
 
-{% block title %}{{ i18n['login'] or 'Login' }} — Opencaching.de{% endblock %}
-
-{% block i18n %}
-<script>window.OCI18n = {{ i18n_json | safe }};</script>
-{% endblock %}
+{% block title %}{{ i18n['Log in!'] or 'Log in!' }}{% endblock %}
 
 {% block page_content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">{{ i18n['login'] or 'Login' }}</h2>
+    <style>
+        article,aside, details, figcaption, figure, footer, header, hgroup, main, nav, section, summary {
+            display: block;
+        }
 
-                    {% if error %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                    {% endif %}
+        audio, canvas, video {
+            display: inline-block;
+        }
 
-                    <form method="post" action="/login">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">{{ i18n['username'] or 'Username' }}</label>
-                            <input type="text" class="form-control" id="username" name="username" required autofocus>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">{{ i18n['password'] or 'Password' }}</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">{{ i18n['login'] or 'Login' }}</button>
-                    </form>
+        audio:not([controls]) {
+            display: none;
+            height: 0;
+        }
 
-                    <hr>
-                    <div class="text-center">
-                        <a href="/register">{{ i18n['register'] or 'Register' }}</a>
-                        &middot;
-                        <a href="/password-reset">{{ i18n['forgot_password'] or 'Forgot password?' }}</a>
-                    </div>
-                </div>
+        [hidden] {
+            display: none;
+        }
+
+        html {
+            font-family: sans-serif;
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        a:focus {
+            outline: thin dotted;
+        }
+
+        a:active, a:hover {
+            outline: 0;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin: 0.67em 0;
+        }
+
+        abbr[title] {
+            border-bottom: 1px dotted;
+        }
+
+        b, strong {
+            font-weight: 700;
+        }
+
+        dfn {
+            font-style: italic;
+        }
+
+        hr {
+            -moz-box-sizing: content-box;
+            box-sizing: content-box;
+            height: 0;
+        }
+
+        mark {
+            background: #ff0;
+            color: #000;
+        }
+
+        code, kbd, pre, samp {
+            font: 1em monospace, serif;
+        }
+
+        pre {
+            white-space: pre-wrap;
+        }
+
+        q {
+            quotes: '\201C' '\201D' '\2018' '\2019';
+        }
+
+        small {
+            font-size: 80%;
+        }
+
+        sub, sup {
+            font-size: 75%;
+            line-height: 0;
+            position: relative;
+            vertical-align: baseline;
+        }
+
+        sup {
+            top: -.5em;
+        }
+
+        sub {
+            bottom: -0.25em;
+        }
+
+        img {
+            border: 0;
+        }
+
+        svg:not(:root) {
+            overflow: hidden;
+        }
+
+        figure {
+            margin: 0;
+        }
+
+        fieldset {
+            border: 1px solid silver;
+            margin: 0 2px;
+            padding: 0.35em 0.625em 0.75em;
+        }
+
+        legend {
+            border: 0;
+            padding: 0;
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
+            font-size: 100%;
+            margin: 0;
+        }
+
+        button, input {
+            line-height: normal;
+        }
+
+        button, select {
+            text-transform: none;
+        }
+
+        button, html input[type='button'], input[type='reset'], input[type='submit'] {
+            -webkit-appearance: button;
+            cursor: pointer;
+        }
+
+        button[disabled], html input[disabled] {
+            cursor: default;
+        }
+
+        input[type='checkbox'], input[type='radio'] {
+            box-sizing: border-box;
+            padding: 0;
+        }
+
+        input[type='search'] {
+            -webkit-appearance: textfield;
+            -moz-box-sizing: content-box;
+            -webkit-box-sizing: content-box;
+            box-sizing: content-box;
+        }
+
+        input[type='search']::-webkit-search-cancel-button, input[type='search']::-webkit-search-decoration {
+            -webkit-appearance: none;
+        }
+
+        button::-moz-focus-inner, input::-moz-focus-inner {
+            border: 0;
+            padding: 0;
+        }
+
+        textarea {
+            overflow: auto;
+            vertical-align: top;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        body, html {
+            min-height: 100%;
+        }
+
+        .maintenance-container {
+            background: var(--oc-bg-elevated);
+            color: var(--oc-text-primary);
+            border-radius: 3px;
+            margin: 50px auto;
+            padding: 30px;
+            position: relative;
+            text-align: center;
+            width: 475px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .maintenance-container a {
+            color: var(--oc-link-color);
+        }
+
+        .maintenance-container .form-control {
+            background-color: var(--oc-input-bg);
+            color: var(--oc-text-primary);
+            border-color: var(--oc-input-border);
+        }
+
+        .maintenance-container .form-control::placeholder {
+            color: var(--oc-text-secondary);
+        }
+
+        .maintenance-headline {
+            font-family: 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
+            font-weight: 300;
+            margin: 0 0 0.8em;
+        }
+
+        .maintenance-text {
+            font-size: 13px;
+        }
+
+    </style>
+    <div class="maintenance-container">
+        <img src="https://wiki.opencaching.de/images/OC_Logo_col_mit_Domain.svg" width="425"
+             style="margin-bottom: 20px;" alt="OC Logo"/>
+
+        <form method="post">
+
+            <h2 class="h3 mb-3">OC Backend | {{ i18n['Login'] or 'Login' }}</h2>
+
+            <div class="form-group mb-3">
+                <label for="inputEmail" class="sr-only">{{ i18n['Email'] or 'Email' }}</label>
+                <input type="text" value="{{ last_username or '' }}" name="username" id="inputEmail" class="form-control"
+                       placeholder="{{ i18n['Username'] or 'Username' }}" required autofocus>
             </div>
-        </div>
+
+            <div class="form-group mb-3">
+                <label for="inputPassword" class="sr-only">{{ i18n['Password'] or 'Password' }}</label>
+                <input type="password" name="password" id="inputPassword" class="form-control" placeholder="{{ i18n['Password'] or 'Password' }}"
+                       required>
+            </div>
+
+            <button class="btn btn-block btn-primary" type="submit">
+                Sign in
+            </button>
+
+            {% if error %}
+                <div class="alert alert-danger mb-3">{{ error }}</div>
+            {% endif %}
+        </form>
     </div>
-</div>
 {% endblock %}

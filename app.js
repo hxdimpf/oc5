@@ -74,12 +74,13 @@ app.get('/', indexRoute.home);
 app.get('/login', (req, res) => res.render('login.njk'));
 app.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
+  const last_username = username || '';
   if (!username || !password) {
-    return res.render('login.njk', { error: 'Username and password are required.' });
+    return res.render('login.njk', { error: 'Username and password are required.', last_username });
   }
   const result = await ocLogin(username, password);
   if (!result) {
-    return res.render('login.njk', { error: 'Invalid username or password.' });
+    return res.render('login.njk', { error: 'Invalid username or password.', last_username });
   }
   res.cookie('ocdevelopmentdata', result.cookie, { maxAge: 365*86400*1000, path: '/', httpOnly: true });
   res.redirect('/');
