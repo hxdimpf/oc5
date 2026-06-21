@@ -25,12 +25,12 @@ flowchart TD
         U
         CGEO
     end
-    subgraph NPM[&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nginx Proxy Manager&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]
+    subgraph NPM[Nginx Proxy Manager — reverse proxy — hostname routing on :80 :443]
         direction LR
-        R4[&nbsp;&nbsp;okapi.baiti.net  →  OKAPI&nbsp;&nbsp;]
-        R1[oc3.baiti.net  →  OC3]
-        R2[oc4.baiti.net  →  OC4]
-        R3[oc5.baiti.net  →  OC5]
+        R1[oc3.baiti.net → OC3]
+        R2[oc4.baiti.net → OC4]
+        R3[oc5.baiti.net → OC5]
+        R4[okapi.baiti.net → OKAPI]
     end
     subgraph OC[Docker Network oc]
         A[OC3 — PHP 8.2 — Legacy]
