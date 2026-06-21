@@ -12,17 +12,6 @@ export default async function auth(req, res, next) {
   req.user = { id: 0, username: null, roles: [] };
 
   try {
-    // Accept auth token from OC3 redirect (cross-subdomain cookie workaround)
-    const authToken = req.query?.auth;
-    if (authToken) {
-      try {
-        const data = JSON.parse(Buffer.from(authToken, 'base64').toString('utf8'));
-        if (data.userid && data.sessionid) {
-          res.cookie('ocdevelopmentdata', authToken, { maxAge: 365 * 86400 * 1000, path: '/' });
-        }
-      } catch (e) { /* invalid token, ignore */ }
-    }
-
     const raw = req.cookies?.ocdevelopmentdata;
     if (!raw) return next();
 
