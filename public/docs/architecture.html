@@ -74,7 +74,7 @@ graph TD
     <tr><td>Framework</td><td>Symfony 7.x</td></tr>
     <tr><td>Web server</td><td>Apache + PHP-FPM</td></tr>
     <tr><td>Database</td><td>Doctrine DBAL (raw SQL)</td></tr>
-    <tr><td>Templates</td><td>Twig (canonical source)</td></tr>
+    <tr><td>Templates</td><td><strong>Twig</strong> — canonical, hand-authored</td></tr>
     <tr><td>Dependencies</td><td>24 direct, ~50 transitive (Composer)</td></tr>
     <tr><td>Image</td><td>shinsenter/php:8.4-fpm-apache (344 MB)</td></tr>
     <tr><td>Deploy</td><td>clone → submodule → composer → cache:clear → symlinks</td></tr>
@@ -83,7 +83,11 @@ graph TD
                 ↓
               Auth (cookie + sys_sessions)
                 ↓
-              Twig template</pre>
+         ┌─  Twig template  ──┐
+         │   (canonical)      │
+         │    ↓ convert.sh    │
+         │  Nunjucks (.njk)   │──→ feeds OC5
+         └────────────────────┘</pre>
 </section>
 
 <!-- 4. OC5 — Node.js/Express -->
@@ -180,7 +184,10 @@ htdocs_symfony/
 │   ├── Repository/          # 30 DBAL repositories
 │   ├── Security/Auth.php    # 200-line auth service
 │   └── Service/UniCacheBuilder.php # Cache data assembler
-├── templates/               # 40+ Twig templates
+├── templates/               # 40+ <strong>Twig templates (canonical)</strong>
+│       │
+│       └──[convert-twig.sh]──→ ../../oc5/public/templates/nunjucks/
+│                                    └── 24 .njk files (derived, never edited)
 └── composer.json            # 24 deps
   </pre>
   <p class="small">After cleanup: 0 ORM entities, 0 ServiceEntityRepository, 0 security firewall.<br>Stripped from 344K LOC to ~15K actual business logic.</p>
