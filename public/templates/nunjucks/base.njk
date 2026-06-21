@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ locale }}">
+<html lang="{{ app.request.locale }}">
 <head>
     <script>
         (function() {
@@ -9,6 +9,7 @@
             document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
+    <link rel="icon" href="/favicon.ico">
     {% block head %}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -17,8 +18,8 @@
 
     <title>{% block title %}Geocaching mit Opencaching.de{% endblock %}</title>
 
-    <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/oc-style.css">
+    <link rel="stylesheet" href="/_frontend/vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="/_frontend/css/oc-style.css">
 
     {% block stylesheets %}
         <style>
@@ -55,6 +56,9 @@
     {% block i18n %}{% endblock %}
 </head>
 
+{# Pages override the `data_page` block to pick the page module under public/js/<data_page>.js.
+   Pages that need Leaflet + the map module override `data_map_js` to "true". The
+   vendor assets are self-hosted under public/vendor/<package>/. #}
 <body data-page="{% block data_page %}{% endblock %}" data-map-js="{% block data_map_js %}{% endblock %}" {% block body_start %}{% endblock %}>
 {% block after_body_start %}{% endblock %}
 
@@ -67,13 +71,8 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     {% block navbar_nav %}
-                        {% if user and user.id %}
-                        <ul class="navbar-nav me-auto">
-                            <li class="nav-item"><a class="nav-link" href="/">{{ i18n['nav.home'] or 'Home' }}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/caches">{{ i18n['nav.search'] or 'Search' }}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/cache/new">{{ i18n['nav.new_cache'] or 'New Cache' }}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/livemap">{{ i18n['nav.map'] or 'Map' }}</a></li>
-                        </ul>
+                        {% if auth.getUser() %}
+                            {{ knp_menu_render('sideMenu', {'template': 'bootstrap_navbar_menu.html.twig'}) }}
                         {% endif %}
                     {% endblock %}
 
@@ -82,11 +81,11 @@
                         <li class="nav-item dropdown me-2">
                             <a class="nav-link dropdown-toggle" href="#" id="localeDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-globe"></i>
-                                {{ locale | upper }}
+                                {{ app.request.locale | upper }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="localeDropdown">
-                                <li><a class="dropdown-item{% if locale == 'de' %} active{% endif %}" href="/set-locale/de">Deutsch</a></li>
-                                <li><a class="dropdown-item{% if locale == 'en' %} active{% endif %}" href="/set-locale/en">English</a></li>
+                                <li><a class="dropdown-item{% if app.request.locale == 'de' %} active{% endif %}" href="{{ path('app_locale_set', {locale: 'de'}) }}">Deutsch</a></li>
+                                <li><a class="dropdown-item{% if app.request.locale == 'en' %} active{% endif %}" href="{{ path('app_locale_set', {locale: 'en'}) }}">English</a></li>
                             </ul>
                         </li>
                         <li class="nav-item">
@@ -95,24 +94,24 @@
                                 <span class="theme-icon-dark">&#9789;</span>
                             </button>
                         </li>
-                        {% if user and user.id %}
+                        {% if auth.getUser() %}
                             <li class="nav-item dropdown ms-2">
                                 <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="fas fa-user"></i>
-                                    {{ user.username }}
+                                    {{ auth.getUser().username }}
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" href="/user/profile/{{ user.id }}">{{ i18n['profile'] or 'Profile' }}</a></li>
-                                    <li><a class="dropdown-item" href="/myhome">{{ i18n['myhome'] or 'My Home' }}</a></li>
+                                    <li><a class="dropdown-item" href="#">{{ i18n['Profile'] or 'Profile' }}</a></li>
+                                    <li><a class="dropdown-item" href="#">{{ i18n['Settings'] or 'Settings' }}</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/logout">{{ i18n['logout'] or 'Logout' }}</a></li>
+                                    <li><a class="dropdown-item" href="{{ path('app_security_logout') }}">{{ i18n['Logout'] or 'Logout' }}</a></li>
                                 </ul>
                             </li>
                         {% else %}
                             <li class="nav-item ms-2">
-                                <a class="nav-link" href="/login">
+                                <a class="nav-link" href="{{ path('app_security_login') }}">
                                     <i class="fas fa-door-open"></i>
-                                    {{ i18n['login'] or 'Login' }}
+                                    {{ i18n['Login'] or 'Login' }}
                                 </a>
                             </li>
                         {% endif %}
@@ -136,18 +135,18 @@
 
     {% block footer %}
         <footer class="footer">
-            <a href="/privacy">{{ i18n['privacypolicy'] or 'Privacy policy' }}</a>
+            <a href="#">{{ i18n['Privacy policy'] or 'Privacy policy' }}</a>
             ,
-            <a href="/imprint">{{ i18n['imprint'] or 'Imprint' }}</a>
+            <a href="#">{{ i18n['Imprint'] or 'Imprint' }}</a>
             ,
-            <a href="/contact">{{ i18n['contact'] or 'Contact' }}</a>
-            &#xA9; opencaching.de 2026
-            <br><small><a href="/docs/architecture.html" style="opacity:0.4">📐 architecture</a></small>
+            <a href="#">{{ i18n['Contact'] or 'Contact' }}</a>
+            ,
+            &#xA9; opencaching.de {{ "now" | date("Y") }}
         </footer>
     {% endblock %}
 
-    <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script type="module" src="/js/loader.js"></script>
+    <script src="/_frontend/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/_frontend/js/loader.js"></script>
     <script>
         (function() {
             var btn = document.getElementById('themeToggle');
