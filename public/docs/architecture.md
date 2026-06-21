@@ -9,6 +9,7 @@
 ```mermaid
 flowchart TD
     U[Browser] --> NPM
+    CLIENT[c:geo / third-party apps] --> D
     NPM --> A
     NPM --> B
     NPM --> C
@@ -20,6 +21,10 @@ flowchart TD
     B -.-> F
     C -.-> F
     B -->|convert-twig.sh| C
+    subgraph Clients
+        U
+        CLIENT
+    end
     subgraph NPM[Nginx Proxy Manager]
         R1[oc3.baiti.net]
         R2[oc4.baiti.net]
@@ -36,9 +41,16 @@ flowchart TD
     end
 ```
 
-Seven Docker stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi.  
-NPM routes by Host header — each subdomain maps to a different backend.
-All containers share a single Docker network and a single MariaDB instance.
+Seven Docker stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi.
+
+**Two client paths:**
+- **Browsers** → NPM (reverse proxy) → OC3 / OC4 / OC5 frontends
+- **c:geo + third-party apps** → OKAPI REST API directly (no HTML, just JSON/XML)
+
+OKAPI is the public API surface — mobile apps, partner sites, and tools consume it.
+The three frontends (OC3/OC4/OC5) serve HTML pages to browsers only.
+
+NPM routes by Host header. All containers share a single Docker network and MariaDB.
 
 ---
 
