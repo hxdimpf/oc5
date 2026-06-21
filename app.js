@@ -2,6 +2,7 @@ import express from 'express';
 import nunjucks from 'nunjucks';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { format as utilFormat } from 'util';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 
@@ -38,7 +39,7 @@ const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nu
   autoescape: true, express: app, noCache: true,
 });
 // Add Twig-compatible filters and globals
-nunjucksEnv.addFilter('format', (str, ...args) => require('util').format(str, ...args));
+nunjucksEnv.addFilter('format', (str, ...args) => utilFormat(str, ...args));
 nunjucksEnv.addGlobal('range', (start, end) => { const a = []; for (let i = start; i <= end; i++) a.push(i); return a; });
 
 // ── i18n: load translations once at startup ──
