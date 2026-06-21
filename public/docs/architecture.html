@@ -109,18 +109,19 @@ graph TD
 <section>
   <h3>Shared Between Stacks</h3>
   <div class="mermaid">
-graph LR
-    subgraph Shared
-        FE[oc-frontend<br>27 ES modules + CSS + vendor<br>Leaflet, Tabulator, Bootstrap]
-        DB[(MariaDB<br>119 tables)]
-        AUTH[cookie auth<br>sys_sessions]
-        I18N[Translations YAML]
-    end
-    OC4 --> FE & DB
-    OC5 --> FE & DB
-    OC3 --> DB
+flowchart LR
+    OC4[OC4 Symfony] --> FE
+    OC4 --> DB
+    OC5[OC5 Express] --> FE
+    OC5 --> DB
+    OC3[OC3 Legacy] --> DB
     OKAPI --> DB
+    subgraph Shared
+        FE[oc-frontend<br>27 JS modules, CSS, vendor]
+        DB[(MariaDB 119 tables)]
+    end
   </div>
+  <p class="small">Same cookie auth (sys_sessions). Same translations (YAML).</p>
 </section>
 
 <!-- 7 -->
@@ -128,16 +129,16 @@ graph LR
   <h3>Template Pipeline</h3>
   <div class="mermaid">
 flowchart LR
-    TWIG[OC4 Twig<br>canonical source] -->|convert-twig.sh| NJK[OC5 Nunjucks<br>derived artifact]
+    TWIG[OC4 Twig - canonical] -->|convert-twig.sh| NJK[OC5 Nunjucks - derived]
   </div>
   <table style="margin-top:0.5em">
-    <tr><th>Twig</th><th>→</th><th>Nunjucks</th></tr>
-    <tr><td><code>{% extends 'base.html.twig' %}</code></td><td>→</td><td><code>{% extends 'base.njk' %}</code></td></tr>
-    <tr><td><code>{{ parent() }}</code></td><td>→</td><td><code>{{ super() }}</code></td></tr>
-    <tr><td><code>{{ 'key' | trans }}</code></td><td>→</td><td><code>{{ i18n['key'] }}</code></td></tr>
-    <tr><td><code>| json_encode | raw</code></td><td>→</td><td><code>| safe</code></td></tr>
+    <tr><th>Twig</th><th>Nunjucks</th></tr>
+    <tr><td><code>{% extends base.html.twig %}</code></td><td><code>{% extends base.njk %}</code></td></tr>
+    <tr><td><code>{{ parent() }}</code></td><td><code>{{ super() }}</code></td></tr>
+    <tr><td><code>{{ 'key' | trans }}</code></td><td><code>{{ i18n.key }}</code></td></tr>
+    <tr><td><code>| json_encode | raw</code></td><td><code>| safe</code></td></tr>
   </table>
-  <p class="small fragment">All changes go into OC4 Twig. Nunjucks files are never edited.</p>
+  <p class="small">OC4 Twig is canonical. OC5 Nunjucks is derived. Never edit .njk directly.</p>
 </section>
 
 <!-- 8 -->
@@ -150,7 +151,7 @@ htdocs_symfony/
 │   └── images/          # 392 files
 ├── src/
 │   ├── Controller/      # 12 app + 8 backoffice
-│   ├── Repository/      # 30 DBAL repos
+│   ├── Repository/      # 30 plain PHP repos (DBAL, no ORM)
 │   ├── Security/Auth.php
 │   └── Service/UniCacheBuilder.php
 ├── templates/           # 40+ Twig (canonical)
