@@ -41,10 +41,16 @@ try {
     for (const line of content.split('\n')) {
       // Try quoted key first (e.g. 'by:': 'von:'), then unquoted
       let match = line.match(/^\s*(['"])(.+?)\1\s*:\s*(.+)$/);
-      if (!match) match = line.match(/^\s*([^'\"#:][^:]*?)\s*:\s*(.+)$/);
-      if (!match || !match[2]) continue;
-      const key = match[2];
-      let val = (match[3] || '').trim();
+      let key, val;
+      if (match) {
+        key = match[2];
+        val = (match[3] || '').trim();
+      } else {
+        match = line.match(/^\s*([^'\"#:][^:]*?)\s*:\s*(.+)$/);
+        if (!match) continue;
+        key = match[1];
+        val = (match[2] || '').trim();
+      }
       if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"')))
         val = val.slice(1, -1);
       obj[key] = val;
