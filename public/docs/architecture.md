@@ -7,23 +7,33 @@
 ## 1. Infrastructure Overview
 
 ```mermaid
-graph TD
+flowchart TD
     U[Browser] --> NPM
-    subgraph NPM[Nginx Proxy Manager :80]
-        R1[oc3] & R2[oc4] & R3[oc5] & R4[okapi]
+    NPM --> A
+    NPM --> B
+    NPM --> C
+    NPM --> D
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+    B -.-> F
+    C -.-> F
+    B -->|convert-twig.sh| C
+    subgraph NPM[Nginx Proxy Manager]
+        R1[oc3.baiti.net]
+        R2[oc4.baiti.net]
+        R3[oc5.baiti.net]
+        R4[okapi.baiti.net]
     end
     subgraph OC[Docker Network oc]
         A[OC3 - PHP 8.2 - Legacy]
         B[OC4 - PHP 8.4 - Symfony - Twig]
         C[OC5 - Node 22 - Express - Nunjucks]
         D[OKAPI - PHP 8.2 - REST API]
-        E[(MariaDB 10.11 - 119 tables)]
-        F[oc-frontend submodule - 27 JS modules]
+        E[(MariaDB - 119 tables)]
+        F[oc-frontend submodule]
     end
-    NPM --> A & B & C & D
-    A & B & C & D --> E
-    B & C -.-> F
-    B -->|convert-twig.sh| C
 ```
 
 Seven Docker stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi.  
@@ -127,16 +137,16 @@ oc5/
 ## 5. Shared Between Stacks
 
 ```mermaid
-graph LR
-    OC4[OC4 Symfony] --> FE
+flowchart LR
+    OC4 --> FE
     OC4 --> DB
-    OC5[OC5 Express] --> FE
+    OC5 --> FE
     OC5 --> DB
-    OC3[OC3 Legacy] --> DB
+    OC3 --> DB
     OKAPI --> DB
     subgraph Shared
-        FE[oc-frontend - 27 JS modules, CSS, vendor]
-        DB[(MariaDB - 119 tables)]
+        FE[oc-frontend]
+        DB[(MariaDB)]
     end
 ```
 
