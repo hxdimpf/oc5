@@ -259,7 +259,37 @@ rather than per request. PHP has no equivalent without external tools.
 
 ---
 
-## 9. Evolution — From Bare Metal to Docker Stacks
+## 9. From ddev to Plain Docker Compose
+
+The previous development environment used [ddev](https://ddev.com) (a PHP-specific
+wrapper around Docker Compose). The new stack drops ddev entirely and uses plain
+Docker Compose directly.
+
+| | ddev (old) | Docker Compose (new) |
+|---|---|---|
+| Abstraction | ddev CLI wraps Docker Compose | Direct `docker compose` commands |
+| PHP versions | One version per project | Multiple versions (8.2, 8.4) concurrently |
+| Web server | ddev-router (Traefik) | NPM (Nginx/OpenResty) |
+| Hostname format | `project.ddev.site` | `*.baiti.net` (real DNS) |
+| Database access | `ddev exec mysql` | `docker exec mariadb-db-1 mysql` |
+| Composer | `ddev exec composer install` | Runs inside container via compose command |
+| Configuration | `.ddev/config.yaml` | `docker-compose.yml` + Ansible playbook |
+| Multi-app | One project per repo | Four apps, one network, one DB |
+| Node.js support | Second-class (requires custom config) | **Native** — OC5 is first-class |
+| Reproducibility | Tied to ddev version + config | **Fully** — plain Docker, any OS |
+| Learning curve | ddev-specific commands | Standard Docker (universal knowledge) |
+| Startup | `ddev start` | `docker compose up -d` |
+| Shutdown | `ddev stop` | `docker compose down` |
+
+**Why we switched:** ddev is excellent for single-project PHP development, but the
+multi-app, multi-language nature of our stack (PHP 8.2, PHP 8.4, Node.js, MariaDB)
+outgrew it. Plain Docker Compose gives us uniform control across all services
+without a PHP-specific abstraction layer. Ansible ties it together for
+deterministic deploys.
+
+---
+
+## 10. Evolution — From Bare Metal to Docker Stacks
 
 The original test system ran on bare metal with Ansible provisioning a single VM:
 
