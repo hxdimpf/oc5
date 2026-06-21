@@ -40,6 +40,7 @@ app.use(helmet({
     },
   },
   crossOriginOpenerPolicy: false,
+  originAgentCluster: false,
 }));
 
 // Rate limit auth endpoints
