@@ -34,6 +34,7 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Too
 app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend/public')));
 app.use(express.static(path.join(__dirname, 'public/_frontend/public')));   // /js/*, /css/*, /vendor/*
 app.use('/images', express.static(path.join(__dirname, 'public/images')));   // /images/*
+app.use('/_frontend/images', express.static(path.join(__dirname, 'public/images'))); // legacy _frontend prefix
 
 const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nunjucks'), {
   autoescape: true, express: app, noCache: true,

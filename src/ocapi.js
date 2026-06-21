@@ -173,7 +173,7 @@ export async function ocGetCacheDetail(wp, userId) {
   const [regionRow] = await pool.query('SELECT adm1 FROM cache_location WHERE cache_id=?', [c.cache_id]);
 
   const wpArr = (wpts || []).map(w => ({ latitude: Number(w.latitude), longitude: Number(w.longitude), description: w.description||'', typeId: w.type_id, type: w.type_name||'', name: w.type_name||'Waypoint', type_name: w.type_name||'', typeName: w.type_name||'', location: `${w.latitude}|${w.longitude}`,
-    icon: ({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id] ? `/_frontend/images/waypoints/${({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id]}` : '',
+    icon: ({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id] ? `/images/waypoints/${({1:'wp_parking.png',2:'wp_reference.png',3:'wp_path.png',4:'wp_final.png',5:'wp_poi.png'})[w.type_id]}` : '',
     myCoords: decimalToDm(Number(w.latitude), Number(w.longitude)),
     prefix: (w.type_name||'WP').substring(0,2).toUpperCase() }));
 
@@ -219,7 +219,7 @@ export async function ocGetCacheDetail(wp, userId) {
       findCount: ownerStats ? Number(ownerStats.found) : 0, hideCount: ownerStats ? Number(ownerStats.hidden) : 0, profileUrl: `/user/profile/${c.owner_id}` },
     hints: d?.hint || '', descDarkUnsafe: d?.desc_dark_unsafe || false,
     sanitizedDescription, additionalWaypoints: wpArr,
-    attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/_frontend/images/attributes/${a.icon}.png` : '' })),
+    attributes: attrs.map(a => ({ ...a, imageUrl: a.icon ? `/images/attributes/${a.icon}.png` : '' })),
     logs: logs.map(l => ({ id: Number(l.id), uuid: l.uuid, type: Number(l.type), typeName: LOG_TYPE_NAMES[Number(l.type)] || String(l.type), date: l.date, username: l.username, text: l.text || '', textHtml: !!(l.text_html), itsMine: userId > 0 && Number(l.userId) === userId })),
     _context: { userId, userName: 'hxdimpf', isOwner: !!c.is_owned },
     isOwned: !!c.is_owned, isFound: !!c.is_found, isDNF,
