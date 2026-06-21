@@ -31,6 +31,7 @@ app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend/publ
 app.use(express.static(path.join(__dirname, 'public/_frontend/public')));   // /js/*, /css/*, /vendor/*
 app.use('/images', express.static(path.join(__dirname, 'public/images')));   // /images/*
 app.use('/_frontend/images', express.static(path.join(__dirname, 'public/images'))); // legacy _frontend prefix
+app.use('/docs', express.static(path.join(__dirname, 'public/docs')));       // architecture presentation
 
 const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nunjucks'), {
   autoescape: true, express: app, noCache: true,

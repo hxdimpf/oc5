@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OC Stack Architecture</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
+<style>
+  .reveal { font-size: 28px; }
+  .reveal h2 { font-size: 1.6em; }
+  .reveal h3 { font-size: 1.2em; color: #8ab4f8; }
+  .reveal pre { font-size: 0.55em; box-shadow: none; }
+  .reveal table { font-size: 0.7em; margin: 0 auto; }
+  .reveal th { background: #333; padding: 6px 12px; }
+  .reveal td { padding: 4px 12px; border-bottom: 1px solid #444; }
+  .reveal .green { color: #4caf50; }
+  .reveal .amber { color: #ff9800; }
+  .reveal .small { font-size: 0.55em; }
+  .mermaid { background: #fff; border-radius: 8px; padding: 16px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1. Title -->
+<section>
+  <h2>OC Docker Stack</h2>
+  <h3>Architecture &amp; Comparison</h3>
+  <p class="small">opencaching.de — dev/test environment</p>
+  <p class="small" style="margin-top:2em">
+    7 Docker stacks &bull; 4 applications &bull; 1 shared database<br>
+    Deterministic deploy via Ansible playbook
+  </p>
+</section>
+
+<!-- 2. Infrastructure Overview -->
+<section>
+  <h3>Infrastructure — Docker Stacks</h3>
+  <div class="mermaid">
+graph TD
+    subgraph Browser
+        U[Browser / HTTP Client]
+    end
+    subgraph NPM[Nginx Proxy Manager :80 :443]
+        R1[oc3.baiti.net]
+        R2[oc4.baiti.net]
+        R3[oc5.baiti.net]
+        R4[okapi.baiti.net]
+    end
+    subgraph OC["Docker Network 'oc'"]
+        A[OC3<br>PHP 8.2<br>Apache<br>Legacy]
+        B[OC4<br>PHP 8.4<br>Apache<br>Symfony 7]
+        C[OC5<br>Node 22<br>Express 5<br>Nunjucks]
+        D[OKAPI<br>PHP 8.2<br>Apache<br>REST API]
+        E[(MariaDB 10.11<br>119 tables)]
+        F[oc-frontend<br>git submodule<br>27 JS modules<br>shared by OC4+OC5]
+    end
+    U --> NPM
+    NPM --> A & B & C & D
+    A & B & C & D --> E
+    B -.-> F
+    C -.-> F
+  </div>
+  <p class="small">7 stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi</p>
+</section>
+
+<!-- 3. OC4 — Symfony 7.x -->
+<section>
+  <h3>OC4 — PHP / Symfony 7.x</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th></tr>
+    <tr><td>Language</td><td>PHP 8.4</td></tr>
+    <tr><td>Framework</td><td>Symfony 7.x</td></tr>
+    <tr><td>Web server</td><td>Apache + PHP-FPM</td></tr>
+    <tr><td>Database</td><td>Doctrine DBAL (raw SQL)</td></tr>
+    <tr><td>Templates</td><td>Twig (canonical source)</td></tr>
+    <tr><td>Dependencies</td><td>24 direct, ~50 transitive (Composer)</td></tr>
+    <tr><td>Image</td><td>shinsenter/php:8.4-fpm-apache (344 MB)</td></tr>
+    <tr><td>Deploy</td><td>clone → submodule → composer → cache:clear → symlinks</td></tr>
+  </table>
+  <pre class="fragment">Request → Router → Controller → Repository(QueryBuilder) → DB
+                ↓
+              Auth (cookie + sys_sessions)
+                ↓
+              Twig template</pre>
+</section>
+
+<!-- 4. OC5 — Node.js/Express -->
+<section>
+  <h3>OC5 — Node.js / Express</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th></tr>
+    <tr><td>Language</td><td>JavaScript (ES modules)</td></tr>
+    <tr><td>Framework</td><td>Express 5</td></tr>
+    <tr><td>Web server</td><td>Express (built-in)</td></tr>
+    <tr><td>Database</td><td>MariaDB connector (raw SQL)</td></tr>
+    <tr><td>Templates</td><td>Nunjucks (derived from Twig)</td></tr>
+    <tr><td>Dependencies</td><td class="green">8 production</td></tr>
+    <tr><td>Image</td><td class="green">node:22-alpine (163 MB)</td></tr>
+    <tr><td>Deploy</td><td class="green">clone → submodule → npm install</td></tr>
+  </table>
+  <pre class="fragment">Request → Express Router → pool.query(sql, params) → DB
+                ↓
+              Auth (cookie + sys_sessions)
+                ↓
+              Nunjucks template</pre>
+</section>
+
+<!-- 5. OC4 vs OC5 — Side by Side -->
+<section>
+  <h3>OC4 vs OC5 — Side by Side</h3>
+  <table>
+    <tr><th></th><th>OC4</th><th>OC5</th></tr>
+    <tr><td>Runtime deps</td><td>24 direct + ~50 transitive</td><td class="green">8</td></tr>
+    <tr><td>Dev deps</td><td>4</td><td class="green">1</td></tr>
+    <tr><td>Image size</td><td>344 MB</td><td class="green">163 MB</td></tr>
+    <tr><td>Web server</td><td>Apache + PHP-FPM</td><td class="green">Express (built-in)</td></tr>
+    <tr><td>Cache step</td><td class="amber">Symfony container compile</td><td class="green">None</td></tr>
+    <tr><td>Deploy steps</td><td>5</td><td class="green">3</td></tr>
+    <tr><td>DB access</td><td>Doctrine DBAL QueryBuilder</td><td>Raw parameterized SQL</td></tr>
+    <tr><td>Templates</td><td>Twig (canonical)</td><td>Nunjucks (derived)</td></tr>
+    <tr><td>Frontend JS</td><td colspan="2" style="text-align:center">Shared — oc-frontend submodule</td></tr>
+    <tr><td>Auth</td><td colspan="2" style="text-align:center">Same cookie — ocdevelopmentdata → sys_sessions</td></tr>
+    <tr><td>Database</td><td colspan="2" style="text-align:center">Same MariaDB schema (119 tables)</td></tr>
+  </table>
+</section>
+
+<!-- 6. Shared Components -->
+<section>
+  <h3>Shared Between Stacks</h3>
+  <div class="mermaid">
+graph LR
+    subgraph Shared
+        FE[oc-frontend<br>git submodule<br>27 ES modules<br>CSS, vendor libs<br>Leaflet, Tabulator, Bootstrap]
+        DB[(MariaDB<br>119 tables<br>123+ triggers)]
+        AUTH[cookie auth<br>ocdevelopmentdata<br>sys_sessions]
+        I18N[Translations<br>YAML files]
+    end
+    OC4[OC4 Symfony] --> FE
+    OC5[OC5 Express] --> FE
+    OC4 --> DB
+    OC5 --> DB
+    OC3[OC3 Legacy] --> DB
+    OK[OKAPI] --> DB
+  </div>
+</section>
+
+<!-- 7. Template Pipeline -->
+<section>
+  <h3>Template Pipeline</h3>
+  <div class="mermaid">
+flowchart LR
+    TWIG[OC4 Twig<br>canonical source<br>templates/] -->|convert-twig.sh| NJK[OC5 Nunjucks<br>derived artifact<br>public/templates/nunjucks/]
+    NJK -.->|mechanical conversion| NJK
+    TWIG -.->|hand-edited| TWIG
+  </div>
+  <table style="margin-top:1em">
+    <tr><th>Twig</th><th>→</th><th>Nunjucks</th></tr>
+    <tr><td><code>{% extends 'base.html.twig' %}</code></td><td>→</td><td><code>{% extends 'base.njk' %}</code></td></tr>
+    <tr><td><code>{{ parent() }}</code></td><td>→</td><td><code>{{ super() }}</code></td></tr>
+    <tr><td><code>{{ 'key' | trans }}</code></td><td>→</td><td><code>{{ i18n['key'] or 'key' }}</code></td></tr>
+    <tr><td><code>{{ var | json_encode | raw }}</code></td><td>→</td><td><code>{{ var | safe }}</code></td></tr>
+  </table>
+  <p class="small fragment">All template changes go into OC4 Twig first.<br>OC5 Nunjucks files are never edited directly.</p>
+</section>
+
+<!-- 8. OC4 Architecture Detail -->
+<section>
+  <h3>OC4 — Symfony Internals</h3>
+  <pre>
+htdocs_symfony/
+├── public/                  # Document root
+│   ├── _frontend/           # git submodule (oc-frontend)
+│   │   └── public/{js,css,vendor}/
+│   └── images/              # 392 image files
+├── src/
+│   ├── Controller/App/      # 12 page controllers
+│   ├── Controller/Backoffice/ # 8 admin controllers
+│   ├── Repository/          # 30 DBAL repositories
+│   ├── Security/Auth.php    # 200-line auth service
+│   └── Service/UniCacheBuilder.php # Cache data assembler
+├── templates/               # 40+ Twig templates
+└── composer.json            # 24 deps
+  </pre>
+  <p class="small">After cleanup: 0 ORM entities, 0 ServiceEntityRepository, 0 security firewall.<br>Stripped from 344K LOC to ~15K actual business logic.</p>
+</section>
+
+<!-- 9. OC5 Architecture Detail -->
+<section>
+  <h3>OC5 — Express Internals</h3>
+  <pre>
+oc5/
+├── app.js                   # Express server, routes, i18n
+├── public/
+│   ├── _frontend/           # git submodule (oc-frontend)
+│   │   └── public/{js,css,vendor}/
+│   ├── images/              # 392 image files (copied)
+│   ├── templates/nunjucks/  # 24 .njk templates
+│   └── translations/        # YAML i18n files
+├── src/
+│   ├── db.js                # MariaDB connection pool
+│   ├── auth.js              # Cookie → sys_sessions validation
+│   ├── ocapi.js             # ~500 lines, all SQL queries
+│   └── routes/{caches,user,search,index,geocode}.js
+└── package.json             # 8 deps
+  </pre>
+  <p class="small">Same architecture as OC4: Controller → QueryBuilder → DB.<br>No ORM, no build step, no cache layer.</p>
+</section>
+
+<!-- 10. Deploy Pipeline -->
+<section>
+  <h3>Deploy Pipeline</h3>
+  <div class="mermaid">
+flowchart TD
+    DEV[Developer<br>edits code locally] --> PUSH[git push<br>to dev-hx branch]
+    PUSH --> PLAYBOOK[Ansible Playbook<br>ansible/deploy.yml]
+    PLAYBOOK --> CLONE[Clone 4 repos<br>OC3, OC4, oc5, okapi]
+    CLONE --> SUBMODULE[Init submodules<br>oc-frontend]
+    SUBMODULE --> COMPOSER[Composer install<br>OC4 + OKAPI]
+    COMPOSER --> SYMLINKS[Create asset symlinks<br>css, js, vendor]
+    SYMLINKS --> DBIMPORT[Import DB dump<br>zcat + mysql]
+    DBIMPORT --> NPMROUTES[Configure NPM<br>proxy hosts]
+    NPMROUTES --> START[Start all containers<br>docker compose up]
+    START --> TEST[Run test suite<br>./scripts/test-deploy.sh all]
+    TEST --> LIVE[✓ Operational]
+  </div>
+</section>
+
+<!-- 11. Key Takeaways -->
+<section>
+  <h3>Key Takeaways</h3>
+  <table>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>Two independent frontends (PHP + Node) sharing one codebase</td></tr>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>OC5 is <strong>half the size, half the steps, half the deps</strong></td></tr>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>Shared oc-frontend submodule — every JS fix benefits both</td></tr>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>Template pipeline: OC4 Twig → mechanical conversion → OC5 Nunjucks</td></tr>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>Deterministic deploy: one Ansible command from bare VM to running stack</td></tr>
+    <tr><td class="green" style="font-size:1.2em">✓</td><td>Incremental migration possible — NPM can route pages to either stack</td></tr>
+  </table>
+  <p class="small" style="margin-top:1em">The database is the asset. The rest is replaceable.</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    plugins: []
+  });
+  // Render mermaid diagrams on each slide
+  Reveal.on('slidechanged', function(event) {
+    event.currentSlide.querySelectorAll('.mermaid').forEach(function(el) {
+      if (!el.hasAttribute('data-processed')) {
+        el.setAttribute('data-processed', 'true');
+        mermaid.init(undefined, el);
+      }
+    });
+  });
+  // Also render on first load
+  setTimeout(function() {
+    document.querySelectorAll('.mermaid').forEach(function(el) {
+      if (!el.hasAttribute('data-processed')) {
+        el.setAttribute('data-processed', 'true');
+        mermaid.init(undefined, el);
+      }
+    });
+  }, 500);
+</script>
+</body>
+</html>
