@@ -1,0 +1,44 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['login'] or 'Login' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">{{ i18n['login'] or 'Login' }}</h2>
+
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="post" action="/login">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">{{ i18n['username'] or 'Username' }}</label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ i18n['password'] or 'Password' }}</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">{{ i18n['login'] or 'Login' }}</button>
+                    </form>
+
+                    <hr>
+                    <div class="text-center">
+                        <a href="/register">{{ i18n['register'] or 'Register' }}</a>
+                        &middot;
+                        <a href="/password-reset">{{ i18n['forgot_password'] or 'Forgot password?' }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

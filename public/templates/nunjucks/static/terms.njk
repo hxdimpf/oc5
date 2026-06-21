@@ -1,0 +1,21 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['terms'] or 'Terms of Use' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['terms'] or 'Terms of Use' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p>
+                {{ i18n['terms_intro'] or 'By using opencaching.de, you agree to the following terms and conditions.' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

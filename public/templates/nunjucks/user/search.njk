@@ -1,0 +1,36 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['user_search'] or 'Search Users' }} — Opencaching.de{% endblock %}
+
+{% block data_page %}searchusers{% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
+<link rel="stylesheet" href="/css/tabulator_oc.css">
+{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['user_search'] or 'Search Users' }}</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <input type="text" id="userSearchInput" class="form-control" placeholder="{{ i18n['username'] or 'Username' }}">
+                </div>
+                <div class="col-md-4">
+                    <button id="userSearchBtn" class="btn btn-primary w-100">{{ i18n['search'] or 'Search' }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-results-table" style="min-height: 400px;"></div>
+</div>
+{% endblock %}

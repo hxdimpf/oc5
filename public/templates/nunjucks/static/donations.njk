@@ -1,0 +1,21 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['donations'] or 'Donations' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['donations'] or 'Donations' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p>
+                {{ i18n['donations_intro'] or 'Opencaching.de is run by volunteers and funded entirely through donations. Your support helps cover server costs and keeps the platform free for everyone.' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

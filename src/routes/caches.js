@@ -1,6 +1,9 @@
 import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes,
   ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocSaveCacheNote, ocInsertLog,
-  ocGetCacheDetail, ocGetCacheWaypoints, ocGetCacheIdByWp, ocSearchCachesByKeyword } from '../ocapi.js';
+  ocGetCacheDetail, ocGetCacheWaypoints, ocGetCacheIdByWp, ocSearchCachesByKeyword,
+  ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs,
+  ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus,
+  ocSaveCacheCoords, ocSaveCacheLogpw } from '../ocapi.js';
 
 function decimalToDm(lat, lon) {
   const ns = lat < 0 ? 'S' : 'N', ew = lon < 0 ? 'W' : 'E';
@@ -76,8 +79,10 @@ export async function newCacheSubmit(req, res) {
   }
 }
 
-export function detail(req, res) {
-  res.render('caches/detail.njk', { wp: req.params.wp.toUpperCase() });
+export async function detail(req, res) {
+  const wp = req.params.wp.toUpperCase();
+  const cache = await ocGetCacheDetail(wp, req.user.id);
+  res.render('caches/detail.njk', { wp, cache, cache_json: cache ? JSON.stringify(cache) : null });
 }
 
 export async function apiSearch(req, res) {
@@ -119,12 +124,122 @@ export async function saveNote(req, res) {
 }
 
 export async function createLog(req, res) {
-  const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+  const wp = req.params.wp.toUpperCase();
+  const cacheId = await ocGetCacheIdByWp(wp);
   if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-  const { type, date, text } = req.body;
-  const logDate = date && date.length===10 ? date+' 00:00:00' : date;
-  const log = await ocInsertLog(cacheId, req.user.id, type, logDate, text);
+
+  const userId = req.user.id;
+  if (!userId) return res.status(401).json({ error: 'Login required' });
+
+  const { type, date, text, password } = req.body;
+  const logType = parseInt(type) || 3;
+  const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+
+  // Log password validation for Found (1) and Attended (7)
+  if (logType === 1 || logType === 7) {
+    const cacheLogpw = await ocGetCacheLogpw(cacheId);
+    if (cacheLogpw && cacheLogpw !== (password || '')) {
+      return res.status(403).json({ error: 'Log password required', requirePassword: true });
+    }
+  }
+
+  // Owner-only log types: 9=Archive, 10=Ready to search, 11=Temporarily unavailable
+  if (logType === 9 || logType === 10 || logType === 11) {
+    const isOwner = await ocIsCacheOwner(cacheId, userId);
+    if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
+
+    // Update cache status
+    const statusMap = { 9: 3, 10: 1, 11: 2 };
+    await ocUpdateCacheStatus(cacheId, statusMap[logType]);
+  }
+
+  // Prevent duplicate Found/Attended
+  if (logType === 1 || logType === 7) {
+    const dups = await ocCountDuplicateLogs(cacheId, userId, logType, 0);
+    if (dups > 0) return res.status(409).json({ error: 'You have already logged this type for this cache' });
+  }
+
+  const log = await ocInsertLog(cacheId, userId, logType, logDate, text);
   res.json({ saved: true, log });
+}
+
+export async function updateLog(req, res) {
+  const userId = req.user.id;
+  if (!userId) return res.status(401).json({ error: 'Login required' });
+
+  const logId = parseInt(req.params.logId) || 0;
+  const { type, date, text, password } = req.body;
+  const logType = parseInt(type) || 3;
+  const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+
+  // Fetch log to verify ownership and get cache info
+  const logRow = await ocGetLogById(logId);
+  if (!logRow) return res.status(404).json({ error: 'Log not found' });
+  if (logRow.user_id !== userId) return res.status(403).json({ error: 'Not authorized' });
+
+  // Log password validation
+  if (logType === 1 || logType === 7) {
+    const cacheLogpw = logRow.cache_logpw || '';
+    if (cacheLogpw && cacheLogpw !== (password || '')) {
+      return res.status(403).json({ error: 'Log password required', requirePassword: true });
+    }
+  }
+
+  // Owner-only types
+  if (logType === 9 || logType === 10 || logType === 11) {
+    const isOwner = await ocIsCacheOwner(logRow.cache_id, userId);
+    if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
+    const statusMap = { 9: 3, 10: 1, 11: 2 };
+    await ocUpdateCacheStatus(logRow.cache_id, statusMap[logType]);
+  }
+
+  // Prevent duplicates (exclude current log)
+  if (logType === 1 || logType === 7) {
+    const dups = await ocCountDuplicateLogs(logRow.cache_id, userId, logType, logId);
+    if (dups > 0) return res.status(409).json({ error: 'You already have a log of this type' });
+  }
+
+  const result = await ocUpdateLog(logId, userId, logType, logDate, text);
+  if (result.error) return res.status(result.status).json(result);
+  res.json(result);
+}
+
+export async function deleteLog(req, res) {
+  const userId = req.user.id;
+  if (!userId) return res.status(401).json({ error: 'Login required' });
+
+  const logId = parseInt(req.params.logId) || 0;
+  const result = await ocDeleteLog(logId, userId);
+  if (result.error) return res.status(result.status).json(result);
+  res.json(result);
+}
+
+export async function saveCoords(req, res) {
+  const wp = req.params.wp.toUpperCase();
+  const cacheId = await ocGetCacheIdByWp(wp);
+  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+
+  const userId = req.user.id;
+  if (!userId) return res.status(401).json({ error: 'Login required' });
+
+  const { lat, lon } = req.body;
+  if (lat == null || lon == null) return res.status(400).json({ error: 'lat and lon required' });
+
+  const result = await ocSaveCacheCoords(cacheId, userId, parseFloat(lat), parseFloat(lon));
+  res.json(result);
+}
+
+export async function saveLogpw(req, res) {
+  const wp = req.params.wp.toUpperCase();
+  const cacheId = await ocGetCacheIdByWp(wp);
+  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+
+  const userId = req.user.id;
+  if (!userId) return res.status(401).json({ error: 'Login required' });
+
+  const { logpw } = req.body;
+  const result = await ocSaveCacheLogpw(cacheId, userId, logpw || '');
+  res.json(result);
 }
 
 export async function apiLive(req, res) {

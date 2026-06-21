@@ -1,0 +1,76 @@
+{% extends 'base.njk' %}
+
+{% block data_page %}home{% endblock %}
+
+{% block title %}{{ i18n['start'] or 'Opencaching.de' }}{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1>{{ i18n['welcome'] or 'Welcome to Opencaching.de' }}</h1>
+            <p class="lead">{{ i18n['home_intro'] or 'The free geocaching platform.' }}</p>
+
+            <div class="row mt-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h2 class="display-4">{{ cacheCount }}</h2>
+                            <p class="text-muted">{{ i18n['caches'] or 'Caches' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h2 class="display-4">{{ logCount }}</h2>
+                            <p class="text-muted">{{ i18n['logs'] or 'Logs' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h2 class="display-4">{{ userCount }}</h2>
+                            <p class="text-muted">{{ i18n['users'] or 'Users' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h3>{{ i18n['search_caches'] or 'Search Caches' }}</h3>
+                    <form action="/caches" method="get" class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" name="q" class="form-control" placeholder="{{ i18n['search_placeholder'] or 'Cache name, waypoint, or owner...' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">{{ i18n['search'] or 'Search' }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4>{{ i18n['quick_links'] or 'Quick Links' }}</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/livemap">{{ i18n['livemap'] or 'Live Map' }}</a></li>
+                        <li><a href="/cache/new">{{ i18n['new_cache'] or 'Create a Cache' }}</a></li>
+                        <li><a href="/user">{{ i18n['user_search'] or 'Find Users' }}</a></li>
+                        {% if not user or not user.id %}
+                        <li><a href="/register">{{ i18n['register'] or 'Register' }}</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

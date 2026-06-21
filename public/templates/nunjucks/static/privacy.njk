@@ -1,0 +1,21 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['privacypolicy'] or 'Privacy Policy' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['privacypolicy'] or 'Privacy Policy' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p>
+                {{ i18n['privacy_intro'] or 'We take the protection of your personal data seriously. This privacy policy explains what data we collect and how we use it.' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

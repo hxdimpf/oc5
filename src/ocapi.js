@@ -345,3 +345,211 @@ export async function ocGetUserProfile(userId) {
   if (stats) { user.findCount = Number(stats.findCount); user.hideCount = Number(stats.hideCount); }
   return user;
 }
+
+// ── Auth ──────────────────────────────────────────────────────────────
+
+export async function ocLogin(username, password) {
+  const [user] = await pool.query('SELECT * FROM user WHERE username = ?', [username]);
+  if (!user) return null;
+
+  // Legacy MD5 password check
+  const crypto = await import('crypto');
+  if (crypto.createHash('md5').update(password).digest('hex') !== user.password) return null;
+
+  // Generate session UUID (matching PHP format)
+  const uuid = `${rhex(4)}-${rhex(2)}-4${rhex(3)}-${'89ab'[Math.floor(Math.random()*4)]}${rhex(3)}-${rhex(6)}`;
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  await pool.query(
+    'INSERT INTO sys_sessions (uuid, user_id, permanent, last_login) VALUES (?, ?, 0, ?)',
+    [uuid, user.user_id, now]
+  );
+
+  // Build cookie data (matching PHP's format)
+  const cookieData = Buffer.from(JSON.stringify({
+    userid: user.user_id,
+    username: user.username,
+    sessionid: uuid,
+    permanent: 0,
+    lastlogin: now,
+  })).toString('base64');
+
+  return { user, cookie: cookieData };
+}
+
+export async function ocLogout(sessionId) {
+  if (sessionId) {
+    await pool.query('DELETE FROM sys_sessions WHERE uuid = ?', [sessionId]);
+  }
+}
+
+function rhex(n) {
+  return Array.from({length: n}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+}
+
+// ── Log management ────────────────────────────────────────────────────
+
+export async function ocGetLogById(logId) {
+  const [log] = await pool.query(
+    'SELECT cl.*, c.logpw AS cache_logpw, c.user_id AS cache_owner_id, c.wp_oc FROM cache_logs cl JOIN caches c ON cl.cache_id = c.cache_id WHERE cl.id = ?',
+    [logId]
+  );
+  return log || null;
+}
+
+export async function ocUpdateLog(logId, userId, type, date, text) {
+  // Verify ownership
+  const [log] = await pool.query('SELECT user_id FROM cache_logs WHERE id = ?', [logId]);
+  if (!log || log.user_id !== userId) return { error: 'Not authorized', status: 403 };
+
+  await pool.query(
+    'UPDATE cache_logs SET type = ?, date = ?, text = ? WHERE id = ?',
+    [type || 3, date, text || '', logId]
+  );
+  return { saved: true };
+}
+
+export async function ocDeleteLog(logId, userId) {
+  const [log] = await pool.query('SELECT user_id FROM cache_logs WHERE id = ?', [logId]);
+  if (!log || log.user_id !== userId) return { error: 'Not authorized', status: 403 };
+
+  await pool.query('DELETE FROM cache_logs WHERE id = ?', [logId]);
+  return { deleted: true };
+}
+
+export async function ocCountDuplicateLogs(cacheId, userId, type, excludeLogId) {
+  const [row] = await pool.query(
+    'SELECT COUNT(*) AS cnt FROM cache_logs WHERE cache_id = ? AND user_id = ? AND type = ? AND id != ?',
+    [cacheId, userId, type, excludeLogId || 0]
+  );
+  return Number(row.cnt);
+}
+
+// ── Cache ownership & status ──────────────────────────────────────────
+
+export async function ocIsCacheOwner(cacheId, userId) {
+  const [row] = await pool.query(
+    'SELECT user_id FROM caches WHERE cache_id = ?',
+    [cacheId]
+  );
+  return row && row.user_id === userId;
+}
+
+export async function ocGetCacheLogpw(cacheId) {
+  const [row] = await pool.query('SELECT logpw FROM caches WHERE cache_id = ?', [cacheId]);
+  return row ? (row.logpw || '') : '';
+}
+
+export async function ocUpdateCacheStatus(cacheId, statusId) {
+  await pool.query('UPDATE caches SET status = ? WHERE cache_id = ?', [statusId, cacheId]);
+}
+
+// ── User coordinates & log password ───────────────────────────────────
+
+export async function ocSaveCacheCoords(cacheId, userId, lat, lon) {
+  const [existing] = await pool.query(
+    'SELECT id FROM coordinates WHERE cache_id = ? AND user_id = ? AND type = 2 ORDER BY id DESC LIMIT 1',
+    [cacheId, userId]
+  );
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  if (existing) {
+    await pool.query('UPDATE coordinates SET latitude = ?, longitude = ?, last_modified = ? WHERE id = ?',
+      [lat, lon, now, existing.id]);
+  } else {
+    await pool.query(
+      'INSERT INTO coordinates (cache_id, user_id, type, subtype, latitude, longitude, description, date_created, last_modified) VALUES (?, ?, 2, 0, ?, ?, \'\', ?, ?)',
+      [cacheId, userId, lat, lon, now, now]
+    );
+  }
+  return { saved: true };
+}
+
+// ── Registration & Password Reset ─────────────────────────────────────
+
+export async function ocCheckUsername(username) {
+  const [row] = await pool.query('SELECT user_id FROM user WHERE username = ?', [username]);
+  return !!row;
+}
+
+export async function ocCheckEmail(email) {
+  const [row] = await pool.query('SELECT user_id FROM user WHERE email = ?', [email]);
+  return !!row;
+}
+
+export async function ocGetUserByEmail(email) {
+  const [user] = await pool.query('SELECT * FROM user WHERE email = ?', [email]);
+  return user || null;
+}
+
+export async function ocCreateUser(data) {
+  const crypto = await import('crypto');
+  const passwordHash = crypto.createHash('md5').update(data.password).digest('hex');
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  await pool.query(
+    `INSERT INTO user (username, email, password, date_created, last_login, is_active_flag, node)
+     VALUES (?, ?, ?, ?, ?, 0, 4)`,
+    [data.username, data.email, passwordHash, now, now]
+  );
+
+  const [r] = await pool.query('SELECT LAST_INSERT_ID() as id');
+  return { user_id: r.id, username: data.username };
+}
+
+export async function ocCreateActivationCode(userId) {
+  const code = `${rhex(4)}-${rhex(8)}`;
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  // Store activation code in sys_sessions or a dedicated field
+  // Using the user table's newpw field for activation code (legacy pattern)
+  await pool.query('UPDATE user SET newpw = ?, newpw_date = ? WHERE user_id = ?', [code, now, userId]);
+  return code;
+}
+
+export async function ocActivateUser(code) {
+  const [user] = await pool.query(
+    "SELECT user_id FROM user WHERE newpw = ? AND is_active_flag = 0",
+    [code]
+  );
+  if (!user) return null;
+  await pool.query("UPDATE user SET is_active_flag = 1, newpw = '', newpw_date = NULL WHERE user_id = ?", [user.user_id]);
+  return user;
+}
+
+export async function ocSetPasswordResetToken(email) {
+  const [user] = await pool.query('SELECT * FROM user WHERE email = ?', [email]);
+  if (!user) return null;
+  const token = `${rhex(4)}-${rhex(8)}`;
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  await pool.query('UPDATE user SET newpw = ?, newpw_date = ? WHERE user_id = ?', [token, now, user.user_id]);
+  return { user, token };
+}
+
+export async function ocResetPassword(token, newPassword) {
+  const [user] = await pool.query(
+    'SELECT user_id FROM user WHERE newpw = ?',
+    [token]
+  );
+  if (!user) return null;
+  const crypto = await import('crypto');
+  const passwordHash = crypto.createHash('md5').update(newPassword).digest('hex');
+  await pool.query("UPDATE user SET password = ?, newpw = '', newpw_date = NULL WHERE user_id = ?", [passwordHash, user.user_id]);
+  return user;
+}
+
+export async function ocSaveCacheLogpw(cacheId, userId, logpw) {
+  const [existing] = await pool.query(
+    'SELECT id FROM coordinates WHERE cache_id = ? AND user_id = ? AND type = 2 ORDER BY id DESC LIMIT 1',
+    [cacheId, userId]
+  );
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  if (existing) {
+    await pool.query('UPDATE coordinates SET logpw = ?, last_modified = ? WHERE id = ?',
+      [logpw || '', now, existing.id]);
+  } else {
+    await pool.query(
+      'INSERT INTO coordinates (cache_id, user_id, type, subtype, latitude, longitude, description, logpw, date_created, last_modified) VALUES (?, ?, 2, 0, 0, 0, \'\', ?, ?, ?)',
+      [cacheId, userId, logpw || '', now, now]
+    );
+  }
+  return { saved: true };
+}

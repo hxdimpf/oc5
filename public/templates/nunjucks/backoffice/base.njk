@@ -1,0 +1,41 @@
+{% extends 'base.njk' %}
+
+{% block navbar_nav %}
+{{ super() }}
+{% if user and user.id %}
+<ul class="navbar-nav me-auto">
+    <li class="nav-item"><a class="nav-link" href="/backoffice">{{ i18n['backoffice'] or 'Admin' }}</a></li>
+    <li class="nav-item"><a class="nav-link" href="/">{{ i18n['public_site'] or 'Public Site' }}</a></li>
+</ul>
+{% endif %}
+{% endblock %}
+
+{% block page_content_before %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar" style="min-height: calc(100vh - 120px);">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/backoffice"><i class="fas fa-home"></i> {{ i18n['dashboard'] or 'Dashboard' }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/backoffice/reported-caches"><i class="fas fa-flag"></i> {{ i18n['reported_caches'] or 'Reported Caches' }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/backoffice/users"><i class="fas fa-users"></i> {{ i18n['users'] or 'Users' }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/backoffice/roles"><i class="fas fa-shield-alt"></i> {{ i18n['roles'] or 'Roles' }}</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4">
+{% endblock %}
+
+{% block page_content_after %}
+        </main>
+    </div>
+</div>
+{% endblock %}

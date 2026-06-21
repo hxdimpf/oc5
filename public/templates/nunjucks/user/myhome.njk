@@ -1,0 +1,61 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['myhome'] or 'My Home' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['myhome'] or 'My Home' }}</h1>
+
+    {% if not user or not user.id %}
+    <div class="alert alert-warning">{{ i18n['login_required'] or 'Please log in to view this page.' }}</div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header"><strong>{{ i18n['quick_links'] or 'Quick Links' }}</strong></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <a href="/cache/new" class="btn btn-outline-primary w-100 mb-2">{{ i18n['new_cache'] or 'Create a Cache' }}</a>
+                        </div>
+                        <div class="col-6">
+                            <a href="/mywatches" class="btn btn-outline-secondary w-100 mb-2">{{ i18n['watched_caches'] or 'Watched Caches' }}</a>
+                        </div>
+                        <div class="col-6">
+                            <a href="/profile" class="btn btn-outline-secondary w-100 mb-2">{{ i18n['edit_profile'] or 'Edit Profile' }}</a>
+                        </div>
+                        <div class="col-6">
+                            <a href="/myignores" class="btn btn-outline-secondary w-100 mb-2">{{ i18n['ignored_caches'] or 'Ignored Caches' }}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><strong>{{ i18n['statistics'] or 'Statistics' }}</strong></div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3>{{ stats.findCount or 0 }}</h3>
+                            <small class="text-muted">{{ i18n['finds'] or 'Finds' }}</small>
+                        </div>
+                        <div class="col-4">
+                            <h3>{{ stats.hideCount or 0 }}</h3>
+                            <small class="text-muted">{{ i18n['hidden'] or 'Hidden' }}</small>
+                        </div>
+                        <div class="col-4">
+                            <h3>{{ stats.logCount or 0 }}</h3>
+                            <small class="text-muted">{{ i18n['logs'] or 'Logs' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

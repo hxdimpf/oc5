@@ -1,0 +1,24 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['about'] or 'About' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['about'] or 'About Opencaching.de' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p>
+                {{ i18n['about_intro'] or 'Opencaching.de is a free and open geocaching platform operated by volunteers since 2005.' }}
+            </p>
+            <p>
+                {{ i18n['about_details'] or 'Unlike commercial platforms, we do not charge for listing caches. The site is maintained by the community, for the community.' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

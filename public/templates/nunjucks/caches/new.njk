@@ -1,0 +1,113 @@
+{% extends 'base.njk' %}
+
+{% block title %}{% if is_edit %}{{ i18n['edit_cache'] or 'Edit Cache' }}{% else %}{{ i18n['new_cache'] or 'New Cache' }}{% endif %} — Opencaching.de{% endblock %}
+
+{% block data_page %}newcache{% endblock %}
+{% block data_map_js %}true{% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="/css/map.css">
+{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{% if is_edit %}{{ i18n['edit_cache'] or 'Edit Cache' }}{% else %}{{ i18n['new_cache'] or 'New Cache' }}{% endif %}</h1>
+
+    <form method="post" action="/cache/new" id="newCacheForm">
+        {% if is_edit %}<input type="hidden" name="edit_id" value="{{ edit_cache_id }}">{% endif %}
+
+        {# Basic Info #}
+        <div class="card mb-3">
+            <div class="card-header"><strong>{{ i18n['basic_info'] or 'Basic Information' }}</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="name" class="form-label">{{ i18n['cache_name'] or 'Cache Name' }} *</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ form.name }}" required>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label for="type" class="form-label">{{ i18n['cache_type'] or 'Type' }} *</label>
+                        <select class="form-select" id="type" name="type">
+                            {% for t in types %}<option value="{{ t.id }}" {% if form.type == t.id|string %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="size" class="form-label">{{ i18n['cache_size'] or 'Size' }} *</label>
+                        <select class="form-select" id="size" name="size">
+                            {% for s in sizes %}<option value="{{ s.id }}" {% if form.size == s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="country" class="form-label">{{ i18n['country'] or 'Country' }}</label>
+                        <select class="form-select" id="country" name="country">
+                            {% for c in countries %}<option value="{{ c.short }}" {% if form.country == c.short %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-4">
+                        <label for="difficulty" class="form-label">{{ i18n['difficulty'] or 'Difficulty' }} *</label>
+                        <select class="form-select" id="difficulty" name="difficulty">
+                            {% for i in range(1, 11) -%}
+                            {% set val = (i / 2) %}
+                            <option value="{{ val }}" {% if form.difficulty == val|string %}selected{% endif %}>{{ val }}</option>
+                            {%- endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="terrain" class="form-label">{{ i18n['terrain'] or 'Terrain' }} *</label>
+                        <select class="form-select" id="terrain" name="terrain">
+                            {% for i in range(1, 11) -%}
+                            {% set val = (i / 2) %}
+                            <option value="{{ val }}" {% if form.terrain == val|string %}selected{% endif %}>{{ val }}</option>
+                            {%- endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="date_hidden" class="form-label">{{ i18n['date_hidden'] or 'Date Hidden' }}</label>
+                        <input type="date" class="form-control" id="date_hidden" name="date_hidden" value="{{ form.hidden_date }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Coordinates #}
+        <div class="card mb-3">
+            <div class="card-header"><strong>{{ i18n['coordinates'] or 'Coordinates' }}</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="coords" class="form-label">{{ i18n['coordinates'] or 'Coordinates' }} *</label>
+                    <input type="text" class="form-control" id="coords" name="coords" value="{{ form.coords }}" placeholder="N51 09.000 E010 27.000" required>
+                </div>
+                <div id="coords-map" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        {# Description #}
+        <div class="card mb-3">
+            <div class="card-header"><strong>{{ i18n['description'] or 'Description' }}</strong></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="short_desc" class="form-label">{{ i18n['short_description'] or 'Short Description' }}</label>
+                    <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ form.short_desc }}">
+                </div>
+                <div class="mb-3">
+                    <label for="desc" class="form-label">{{ i18n['description'] or 'Description' }}</label>
+                    <textarea class="form-control" id="desc" name="desc" rows="12">{{ form.desc }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="hint" class="form-label">{{ i18n['hint'] or 'Hint' }}</label>
+                    <input type="text" class="form-control" id="hint" name="hint" value="{{ form.hints }}">
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg">{% if is_edit %}{{ i18n['save'] or 'Save Changes' }}{% else %}{{ i18n['create_cache'] or 'Create Cache' }}{% endif %}</button>
+    </form>
+</div>
+{% endblock %}

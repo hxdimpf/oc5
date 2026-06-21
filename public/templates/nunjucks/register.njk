@@ -1,0 +1,59 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['register'] or 'Register' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">{{ i18n['register'] or 'Create an Account' }}</h2>
+
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+                    {% if success %}
+                    <div class="alert alert-success">{{ success }}</div>
+                    {% endif %}
+
+                    <form method="post" action="/register">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">{{ i18n['username'] or 'Username' }} *</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ form.username or '' }}" required minlength="3" maxlength="60">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">{{ i18n['email'] or 'Email' }} *</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ form.email or '' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ i18n['password'] or 'Password' }} *</label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password2" class="form-label">{{ i18n['password_confirm'] or 'Confirm Password' }} *</label>
+                            <input type="password" class="form-control" id="password2" name="password2" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="tos" name="tos" required>
+                            <label class="form-check-label" for="tos">
+                                {{ i18n['tos_agree'] or 'I agree to the Terms of Use and Privacy Policy.' }}
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">{{ i18n['register'] or 'Register' }}</button>
+                    </form>
+
+                    <hr>
+                    <div class="text-center">
+                        <a href="/login">{{ i18n['already_have_account'] or 'Already have an account? Login' }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

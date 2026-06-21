@@ -1,0 +1,44 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ profile.username or 'User Profile' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    {% if not profile %}
+    <div class="alert alert-warning">{{ i18n['user_not_found'] or 'User not found' }}</div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ profile.username }}</h1>
+            <p class="text-muted">{{ i18n['joined'] or 'Joined' }}: {{ profile.date_created or '—' }}</p>
+
+            <div class="row mt-4 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3>{{ profile.findCount or 0 }}</h3>
+                            <small class="text-muted">{{ i18n['finds'] or 'Finds' }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3>{{ profile.hideCount or 0 }}</h3>
+                            <small class="text-muted">{{ i18n['hidden'] or 'Hidden' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>{{ i18n['recent_activity'] or 'Recent Activity' }}</h3>
+            <p class="text-muted">{{ i18n['activity_placeholder'] or 'Recent logs and cache finds will appear here.' }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

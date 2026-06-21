@@ -1,0 +1,77 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ cache.name or wp }} — Opencaching.de{% endblock %}
+
+{% block data_page %}cache{% endblock %}
+{% block data_map_js %}true{% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="/css/map.css">
+<link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
+<link rel="stylesheet" href="/css/tabulator_oc.css">
+{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% if cache_json %}<script>window.uniCacheWP = {{ cache_json | safe }};</script>{% endif %}
+<script>window.defaultZoom = 14;</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            {# Cache header #}
+            <div id="cache-header">
+                <h1>{% if cache %}{{ cache.name }}{% else %}{{ wp }}{% endif %}</h1>
+                <p class="text-muted">{{ wp }}</p>
+            </div>
+
+            {# Tab navigation #}
+            <ul class="nav nav-tabs mb-3" id="cacheTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-pane" type="button">Description</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-pane" type="button">Logs</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="waypoints-tab" data-bs-toggle="tab" data-bs-target="#waypoints-pane" type="button">Waypoints</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-pane" type="button">Images</button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="desc-pane">
+                    <div id="cache-description">Loading...</div>
+                </div>
+                <div class="tab-pane fade" id="logs-pane">
+                    <div id="cache-logs">Loading...</div>
+                </div>
+                <div class="tab-pane fade" id="waypoints-pane">
+                    <div id="cache-waypoints">Loading...</div>
+                </div>
+                <div class="tab-pane fade" id="images-pane">
+                    <div id="cache-images">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            {# Sidebar: map + info #}
+            <div class="card mb-3">
+                <div id="detail-map" style="height: 300px;"></div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body" id="cache-sidebar-info">
+                    <p><em>Loading cache info...</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

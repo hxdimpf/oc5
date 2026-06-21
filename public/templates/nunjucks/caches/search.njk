@@ -1,0 +1,54 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['search_caches'] or 'Search Caches' }} — Opencaching.de{% endblock %}
+
+{% block data_page %}searchcaches{% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="/vendor/tabulator/tabulator.min.css">
+<link rel="stylesheet" href="/css/tabulator_oc.css">
+{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['search_caches'] or 'Search Caches' }}</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="{{ i18n['search_placeholder'] or 'Cache name, waypoint, or owner...' }}">
+                </div>
+                <div class="col-md-3">
+                    <select id="searchType" class="form-select">
+                        <option value="0">{{ i18n['all_types'] or 'All Types' }}</option>
+                        {% for t in types %}
+                        <option value="{{ t.id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="searchDifficulty" class="form-select">
+                        <option value="">{{ i18n['difficulty'] or 'Difficulty' }}</option>
+                        <option value="1-5">1.0 – 5.0</option>
+                        <option value="1-2">1.0 – 2.0</option>
+                        <option value="2-3">2.0 – 3.0</option>
+                        <option value="3-4">3.0 – 4.0</option>
+                        <option value="4-5">4.0 – 5.0</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="searchBtn" class="btn btn-primary w-100">{{ i18n['search'] or 'Search' }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="search-results-table" style="min-height: 400px;"></div>
+</div>
+{% endblock %}

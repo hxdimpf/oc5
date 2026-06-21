@@ -1,0 +1,39 @@
+{% extends 'backoffice/base.njk' %}
+
+{% block title %}{{ i18n['backoffice'] or 'Backoffice' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<h1 class="mt-3">{{ i18n['backoffice'] or 'Backoffice' }}</h1>
+<p class="text-muted">{{ i18n['backoffice_welcome'] or 'Administration panel for Opencaching.de.' }}</p>
+
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>{{ i18n['reported_caches'] or 'Reported Caches' }}</h5>
+                <a href="/backoffice/reported-caches" class="btn btn-outline-primary btn-sm">{{ i18n['view'] or 'View' }}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>{{ i18n['users'] or 'Users' }}</h5>
+                <a href="/backoffice/users" class="btn btn-outline-primary btn-sm">{{ i18n['search'] or 'Search' }}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>{{ i18n['roles'] or 'Roles' }}</h5>
+                <a href="/backoffice/roles" class="btn btn-outline-primary btn-sm">{{ i18n['manage'] or 'Manage' }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

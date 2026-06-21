@@ -1,0 +1,18 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['watched_caches'] or 'Watched Caches' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['watched_caches'] or 'Watched Caches' }}</h1>
+    {% if not user or not user.id %}
+    <div class="alert alert-warning">{{ i18n['login_required'] or 'Please log in to view this page.' }}</div>
+    {% else %}
+    <p class="text-muted">{{ i18n['watchlist_placeholder'] or 'Your watched caches will appear here.' }}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+    <script>
+        (function() {
+            var stored = localStorage.getItem('oc-theme');
+            var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored || (systemDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    {% block head %}
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% endblock %}
+
+    <title>{% block title %}Geocaching mit Opencaching.de{% endblock %}</title>
+
+    <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/oc-style.css">
+
+    {% block stylesheets %}
+        <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+            font-family: sans-serif;
+        }
+
+        .content {
+            background-color: var(--oc-bg-body);
+            color: var(--oc-text-primary);
+            padding: 0;
+        }
+
+        .footer {
+            background-color: var(--oc-bg-navbar);
+            color: var(--oc-text-inverse);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: var(--oc-footer-link-color);
+        }
+        </style>
+    {% endblock %}
+    <script>window.OCI18n = {};</script>
+    {% block i18n %}{% endblock %}
+</head>
+
+<body data-page="{% block data_page %}{% endblock %}" data-map-js="{% block data_map_js %}{% endblock %}" {% block body_start %}{% endblock %}>
+{% block after_body_start %}{% endblock %}
+
+    <header class="header">
+        <nav class="navbar navbar-expand-lg navbar-dark w-100" style="background-color: var(--oc-bg-navbar);">
+            <div class="container-fluid">
+                <a class="navbar-brand p-0" href="/"><img src="/images/oclogo.png" alt="Opencaching.de" height="40" style="display:block;"></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    {% block navbar_nav %}
+                        {% if user and user.id %}
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item"><a class="nav-link" href="/">{{ i18n['nav.home'] or 'Home' }}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/caches">{{ i18n['nav.search'] or 'Search' }}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/cache/new">{{ i18n['nav.new_cache'] or 'New Cache' }}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/livemap">{{ i18n['nav.map'] or 'Map' }}</a></li>
+                        </ul>
+                        {% endif %}
+                    {% endblock %}
+
+                    {# Right-aligned section: language switcher + theme toggle + user dropdown (or Login link) #}
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle" href="#" id="localeDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-globe"></i>
+                                {{ locale | upper }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="localeDropdown">
+                                <li><a class="dropdown-item{% if locale == 'de' %} active{% endif %}" href="/set-locale/de">Deutsch</a></li>
+                                <li><a class="dropdown-item{% if locale == 'en' %} active{% endif %}" href="/set-locale/en">English</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+                                <span class="theme-icon-light">&#9788;</span>
+                                <span class="theme-icon-dark">&#9789;</span>
+                            </button>
+                        </li>
+                        {% if user and user.id %}
+                            <li class="nav-item dropdown ms-2">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-user"></i>
+                                    {{ user.username }}
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" href="/user/profile/{{ user.id }}">{{ i18n['profile'] or 'Profile' }}</a></li>
+                                    <li><a class="dropdown-item" href="/myhome">{{ i18n['myhome'] or 'My Home' }}</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/logout">{{ i18n['logout'] or 'Logout' }}</a></li>
+                                </ul>
+                            </li>
+                        {% else %}
+                            <li class="nav-item ms-2">
+                                <a class="nav-link" href="/login">
+                                    <i class="fas fa-door-open"></i>
+                                    {{ i18n['login'] or 'Login' }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    {% block page_content_before %}{% endblock %}
+    <main class="content">
+        {% block page_title %}{% endblock %}
+        <small>{% block page_subtitle %}{% endblock %}</small>
+
+        {% block page_content_start %}{% endblock %}
+        {% block page_content %}{% endblock %}
+        {% block page_content_end %}{% endblock %}
+
+    </main>
+    {% block page_content_after %}{% endblock %}
+
+    {% block footer %}
+        <footer class="footer">
+            <a href="/privacy">{{ i18n['privacypolicy'] or 'Privacy policy' }}</a>
+            ,
+            <a href="/imprint">{{ i18n['imprint'] or 'Imprint' }}</a>
+            ,
+            <a href="/contact">{{ i18n['contact'] or 'Contact' }}</a>
+            ,
+            &#xA9; opencaching.de 2026
+        </footer>
+    {% endblock %}
+
+    <script src="/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/js/loader.js"></script>
+    <script>
+        (function() {
+            var btn = document.getElementById('themeToggle');
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                var current = document.documentElement.getAttribute('data-theme') || 'light';
+                var next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('oc-theme', next);
+            });
+        })();
+    </script>
+</body>
+</html>

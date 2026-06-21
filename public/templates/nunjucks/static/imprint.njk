@@ -1,0 +1,29 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['imprint'] or 'Imprint' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['imprint'] or 'Imprint' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Opencaching Deutschland</strong></p>
+            <p>
+                c/o {{ i18n['imprint_org'] or 'German Geocaching Community' }}<br>
+                {{ i18n['imprint_address'] or 'Address information available upon request.' }}
+            </p>
+            <p>
+                {{ i18n['imprint_email'] or 'Email' }}: <a href="mailto:contact@opencaching.de">contact@opencaching.de</a>
+            </p>
+            <p>
+                {{ i18n['imprint_disclaimer'] or 'This is an open-source geocaching platform operated by volunteers.' }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

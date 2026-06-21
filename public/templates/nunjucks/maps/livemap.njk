@@ -1,0 +1,26 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['livemap'] or 'Live Map' }} — Opencaching.de{% endblock %}
+
+{% block data_page %}livemap{% endblock %}
+{% block data_map_js %}true{% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="/css/map.css">
+{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<script>
+    window.lat = {{ lat | default(51.1657) }};
+    window.lon = {{ lon | default(10.4515) }};
+    window.defaultZoom = {{ defaultZoom | default(6) }};
+</script>
+<div id="map-container" style="width:100%; height:calc(100vh - 120px); position:relative;">
+    <div id="map" style="width:100%; height:100%;"></div>
+</div>
+{% endblock %}

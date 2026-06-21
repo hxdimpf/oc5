@@ -1,0 +1,25 @@
+{% extends 'base.njk' %}
+
+{% block title %}{{ i18n['contact'] or 'Contact' }} — Opencaching.de{% endblock %}
+
+{% block i18n %}
+<script>window.OCI18n = {{ i18n_json | safe }};</script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+    <h1>{{ i18n['contact'] or 'Contact' }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p>
+                {{ i18n['contact_intro'] or 'For questions, suggestions, or issues, please reach out through the following channels:' }}
+            </p>
+            <ul>
+                <li>Email: <a href="mailto:contact@opencaching.de">contact@opencaching.de</a></li>
+                <li>{{ i18n['contact_forum'] or 'Community Forum' }}: <a href="https://forum.opencaching.de">forum.opencaching.de</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
