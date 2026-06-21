@@ -246,31 +246,19 @@ flowchart TD
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
-  mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
   Reveal.initialize({
     hash: true,
     slideNumber: 'c/t',
     transition: 'slide',
     plugins: []
   });
-  // Render mermaid diagrams on each slide
-  Reveal.on('slidechanged', function(event) {
-    event.currentSlide.querySelectorAll('.mermaid').forEach(function(el) {
-      if (!el.hasAttribute('data-processed')) {
-        el.setAttribute('data-processed', 'true');
-        mermaid.init(undefined, el);
-      }
-    });
+  Reveal.on('ready', function() {
+    mermaid.run({ querySelector: '.mermaid' });
   });
-  // Also render on first load
-  setTimeout(function() {
-    document.querySelectorAll('.mermaid').forEach(function(el) {
-      if (!el.hasAttribute('data-processed')) {
-        el.setAttribute('data-processed', 'true');
-        mermaid.init(undefined, el);
-      }
-    });
-  }, 500);
+  Reveal.on('slidechanged', function() {
+    mermaid.run({ querySelector: '.mermaid' });
+  });
 </script>
 </body>
 </html>
