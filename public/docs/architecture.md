@@ -259,7 +259,57 @@ rather than per request. PHP has no equivalent without external tools.
 
 ---
 
-## 9. Key Takeaways
+## 9. Evolution — From Bare Metal to Docker Stacks
+
+The original test system ran on bare metal with Ansible provisioning a single VM:
+
+```
+Bare metal Debian 13
+├── Apache (one instance, two vhosts)
+│   ├── oc3 → PHP 8.2 FPM pool (20 children)
+│   └── oc4 → PHP 8.4 FPM pool (20 children)
+├── MariaDB (native install)
+├── Redis + Memcached + mod_evasive
+├── 21 PHP extension packages via apt
+├── Self-signed SSL with certbot dirs
+├── Cron jobs + 8 post-install scripts
+└── OKAPI vendored into OC3 repo
+```
+
+The current system replaced all of that with Docker:
+
+```
+Docker Engine (any OS: macOS, Windows, Linux)
+├── NPM (reverse proxy, container)
+├── OC3 (container)
+├── OC4 (container)
+├── OC5 (container)
+├── OKAPI (container)
+└── MariaDB (container)
+```
+
+| | Old (bare metal) | New (Docker stacks) |
+|---|---|---|
+| Apps | 2 (OC3 + OC4) | **4** (OC3 + OC4 + OC5 + OKAPI) |
+| Isolation | Shared Apache/PHP between apps | Full per-app container isolation |
+| PHP versions | Two FPM pools, same host | Per-container, zero conflict |
+| Scaling | Tune FPM children, Apache config | `docker compose --scale` |
+| Deploy time | ~15 min + 8 post-install scripts | **~5 min** (git clone + compose up) |
+| Idempotent | Mostly | **Fully** (containers are restartable) |
+| Reproducible | Depends on OS packages | **Fully** (Docker images are pinned) |
+| Dev workflow | Edit → push → pull → restart FPM | **Edit live** (volume mount, save = instant) |
+| Host contamination | 21 PHP packages, MariaDB, Redis, Memcached | **Zero** — only Docker |
+| Cross-platform | Debian 13 only | Any OS with Docker |
+| Config management | 12 Ansible template files | 7 compose files + env vars |
+| Frontend JS | One copy in OC3 repo | Shared submodule (OC4 + OC5) |
+
+**Key win**: a new developer clones four repos and runs one Ansible command.
+`docker compose down` removes every trace. No PHP, no database, no Apache
+installed on their machine. The same playbook works on macOS, Windows, and Linux.
+
+---
+
+## 10. Key Takeaways
 
 - Two independent backends (PHP + Node.js) sharing one frontend codebase.
 - **OC5 is half the size, half the dependencies, half the deploy steps.**
@@ -267,6 +317,7 @@ rather than per request. PHP has no equivalent without external tools.
 - Shared oc-frontend submodule — every JS improvement benefits both stacks simultaneously.
 - Template pipeline: OC4 Twig → mechanical conversion → OC5 Nunjucks. Never diverged.
 - Deterministic deploy: one Ansible command from bare VM to running production.
+- Runs on any OS — `git clone && docker compose up`, no host contamination.
 - Incremental migration is feasible: NPM can route individual pages to either stack.
 
 > The database is the asset. The rest is replaceable.
