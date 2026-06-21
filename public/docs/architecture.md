@@ -350,7 +350,44 @@ installed on their machine. The same playbook works on macOS, Windows, and Linux
 
 ---
 
-## 10. Key Takeaways
+## 11. Path to Production
+
+The architecture itself is production-ready — stateless services, horizontal scaling,
+single database source of truth. What changes between dev and prod is operational
+wrapping, not structure:
+
+| Concern | Dev (now) | Production |
+|---|---|---|
+| SSL | Self-signed cert | Let's Encrypt via NPM (built-in) |
+| Node env | `NODE_ENV=development` | `NODE_ENV=production` |
+| Templates | `noCache: true` (live edit) | `noCache: false` (compile once at boot) |
+| Delivery | Volume mount from `/opt/repos` | `COPY` into Docker image via Dockerfile |
+| Dependencies | `npm install` on every boot | `npm ci --omit=dev` at image build time |
+| Database | Single MariaDB container | Managed DB with replication + automated backups |
+| Host | One VM | At least two VMs for HA, or managed DB service |
+| Monitoring | None | Health checks, log aggregation, alerts |
+| CI/CD | Manual `git push` | GitHub Actions → build image → test → deploy |
+| Image source | `node:22-alpine` (Docker Hub) | Pinned SHA256 digest for reproducibility |
+| Port exposure | Direct via NPM | Cloud load balancer → NPM |
+
+**What stays the same:** The stack diagram, repo structure, shared frontend, template
+pipeline, scaling model, Ansible playbook logic. Production is the same architecture
+with images built in CI and a managed database.
+
+```dockerfile
+# Example production Dockerfile for OC5
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+ENV NODE_ENV=production
+CMD ["node", "app.js"]
+```
+
+---
+
+## 12. Key Takeaways
 
 - Two independent backends (PHP + Node.js) sharing one frontend codebase.
 - **OC5 is half the size, half the dependencies, half the deploy steps.**
