@@ -7,38 +7,26 @@
 ## 1. Infrastructure Overview
 
 ```mermaid
-flowchart TD
-    U[Browser] --> NPM
-    CLIENT[c:geo / third-party apps] --> D
-    NPM --> A
-    NPM --> B
-    NPM --> C
-    NPM --> D
-    A --> E
-    B --> E
-    C --> E
-    D --> E
-    B -.-> F
-    C -.-> F
-    B -->|convert-twig.sh| C
-    subgraph Clients
-        U
-        CLIENT
+flowchart LR
+    BROWSER[Browser]
+    CGEO[c:geo / apps]
+    BROWSER --> NPM
+    CGEO --> OKAPI
+    subgraph NPM[Nginx Proxy Manager — hostname routing]
+        OC3[OC3 · Legacy PHP 8.2]
+        OC4[OC4 · Symfony 7 · Twig]
+        OC5[OC5 · Node 22 · Express]
+        OKAPI[OKAPI · PHP 8.2 · REST API]
     end
-    subgraph NPM[Nginx Proxy Manager]
-        R1[oc3.baiti.net]
-        R2[oc4.baiti.net]
-        R3[oc5.baiti.net]
-        R4[okapi.baiti.net]
-    end
-    subgraph OC[Docker Network oc]
-        A[OC3 - PHP 8.2 - Legacy]
-        B[OC4 - PHP 8.4 - Symfony - Twig]
-        C[OC5 - Node 22 - Express - Nunjucks]
-        D[OKAPI - PHP 8.2 - REST API]
-        E[(MariaDB - 119 tables)]
-        F[oc-frontend submodule]
-    end
+    OC3 --> DB
+    OC4 --> DB
+    OC5 --> DB
+    OKAPI --> DB
+    OC4 -.-> FRONTEND
+    OC5 -.-> FRONTEND
+    OC4 -->|convert-twig.sh| OC5
+    DB[(MariaDB 119 tables)]
+    FRONTEND[oc-frontend submodule]
 ```
 
 Seven Docker stacks: dockge, npm, mariadb, oc3, oc4, oc5, okapi.
