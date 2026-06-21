@@ -27,6 +27,8 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(helmet({
+  // Dev environment — disable HSTS and auto-HTTPS upgrades (self-signed cert)
+  strictTransportSecurity: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -34,8 +36,10 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https://wiki.opencaching.de", "*.tile.openstreetmap.org"],
       connectSrc: ["'self'", "*.tile.openstreetmap.org", "nominatim.openstreetmap.org"],
+      upgradeInsecureRequests: null,  // don't auto-upgrade HTTP→HTTPS (dev with self-signed cert)
     },
   },
+  crossOriginOpenerPolicy: false,
 }));
 
 // Rate limit auth endpoints
