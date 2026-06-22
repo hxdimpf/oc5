@@ -298,7 +298,7 @@ export async function ocSaveCacheNote(cacheId, userId, text) {
 }
 
 export async function ocInsertLog(cacheId, userId, type, date, text) {
-  await pool.query('INSERT INTO cache_logs (uuid, node, cache_id, user_id, type, date, text, text_html, text_htmledit, picture, needs_maintenance, listing_outdated, date_created, entry_last_modified, last_modified, log_last_modified, order_date) VALUES (UUID(), 4,?,?,?,?,?,0,0,0,0,0, NOW(), NOW(), NOW(), NOW(), NOW())', [cacheId, userId, type||3, date, text||'']);
+  await pool.query('INSERT INTO cache_logs (node, cache_id, user_id, type, date, text, text_html, text_htmledit, picture, needs_maintenance, listing_outdated) VALUES (4,?,?,?,?,?,0,0,0,0,0)', [cacheId, userId, type||3, date, text||'']);
   const [r] = await pool.query('SELECT LAST_INSERT_ID() as id');
   const [log] = await pool.query("SELECT id, type, DATE_FORMAT(date, '%Y-%m-%d') AS date, text FROM cache_logs WHERE id=?", [r.id]);
   return log;
