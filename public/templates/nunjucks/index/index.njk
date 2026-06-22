@@ -74,6 +74,13 @@
         <div>
           <div class="text-center"><span class="badge px-3 py-2 mb-2" style="background:#68a063;font-size:0.85em">Node.js / Express backend</span></div>
           <div class="oc-home-title">OpenCaching</div>
+          <p class="text-muted" style="max-width:600px;margin:0.5rem auto 0;font-size:0.85rem">
+            This page is served by <strong>OC5</strong>, a Node.js/Express rewrite of the
+            opencaching.de backend. It shares the same database, same frontend JavaScript,
+            and same <code>oc-frontend</code> submodule as OC4, but replaces PHP/Symfony with
+            a minimal JavaScript stack — 8 npm dependencies, ~500 lines of SQL, no ORM,
+            no build step. Same architecture, half the size.
+          </p>
           <div class="oc-home-subtitle text-secondary">
             {{ i18n['The open geocaching network — free, open, community-driven.'] or 'The open geocaching network — free, open, community-driven.' }}
           </div>
