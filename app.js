@@ -90,7 +90,7 @@ app.post('/login', async (req, res) => {
   if (!result) {
     return res.render('login.njk', { error: 'Invalid username or password.', last_username });
   }
-  res.cookie('ocdevelopmentdata', result.cookie, { maxAge: 365*86400*1000, path: '/', httpOnly: true });
+  res.cookie('oc5_session', result.cookie, { maxAge: 365*86400*1000, path: '/', httpOnly: true });
   res.redirect('/');
 });
 app.get('/set-locale/:locale', (req, res) => {
@@ -98,7 +98,7 @@ app.get('/set-locale/:locale', (req, res) => {
   res.redirect(req.get('referer') || '/');
 });
 app.get('/logout', (req, res) => {
-  res.clearCookie('ocdevelopmentdata');
+  res.clearCookie('oc5_session');
   res.redirect('/login');
 });
 app.get('/livemap', async (req, res) => {
