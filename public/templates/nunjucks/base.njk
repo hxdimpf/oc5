@@ -70,7 +70,6 @@
                     {% block navbar_nav %}
                         {% if user and user.id %}
                         <ul class="navbar-nav me-auto">
-                            <li class="nav-item"><a class="nav-link" href="/">{{ i18n['nav.home'] or 'Home' }}</a></li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ i18n['nav.search'] or 'Search' }}</a>
                                 <ul class="dropdown-menu">
