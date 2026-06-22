@@ -1,7 +1,7 @@
 import pool from './db.js';
 
 /**
- * Auth middleware — reads the legacy ocdevelopmentdata cookie,
+ * Auth middleware — reads the legacy oc5_session cookie,
  * validates against sys_sessions, loads the user. No ORM, no firewall.
  *
  * Sets req.user = { id: number, username: string|null, roles: string[] }
@@ -12,7 +12,7 @@ export default async function auth(req, res, next) {
   req.user = { id: 0, username: null, roles: [] };
 
   try {
-    const raw = req.cookies?.ocdevelopmentdata;
+    const raw = req.cookies?.oc5_session;
     if (!raw) return next();
 
     const data = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
