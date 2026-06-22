@@ -38,7 +38,18 @@ const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nu
   autoescape: true, express: app, noCache: true,
 });
 // Add Twig-compatible filters and globals
-nunjucksEnv.addFilter('format', (str, ...args) => utilFormat(str, ...args));
+nunjucksEnv.addFilter('format', (fmt, ...args) => {
+  // Handle sprintf-style: '%.1f' | format(value) or '%02d' | format(num)
+  if (typeof fmt !== 'string') return String(fmt);
+  let i = 0;
+  return fmt.replace(/%[0-9.]*[sdif]/g, (spec) => {
+    const val = args[i++];
+    if (val === undefined) return spec;
+    if (spec.includes('f')) return Number(val).toFixed((spec.match(/\.(\d+)/)?.[1] || 0) | 0);
+    if (spec.includes('d') || spec.includes('i')) return String(Math.floor(Number(val))).padStart((spec.match(/%(\d+)/)?.[1] || 1) | 0, '0');
+    return String(val);
+  });
+});
 nunjucksEnv.addFilter('number_format', (num, decimals = 0, decSep = '.', thouSep = ',') => {
   const fixed = Number(num).toFixed(decimals);
   const [intPart, decPart] = fixed.split('.');
