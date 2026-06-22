@@ -236,7 +236,18 @@ export async function ocGetCacheDetail(wp, userId) {
     placedDateFmt: fmtDate(c.date_hidden), publishedDate: fmtDate(c.date_created), publishedDateFmt: fmtDate(c.date_created),
     isOcOnly: !!c.is_oc_only, isArchived: c.status_id===3, isDisabled: c.status_id===2,
     isFavorited: false, listingOutdated: !!(c.listing_outdated), needsMaintenance: !!(c.needs_maintenance),
-    ianaTimezoneId: 'Europe/Berlin', logTypes: [],
+    ianaTimezoneId: 'Europe/Berlin',
+    logTypes: (() => {
+      // Match OC4 UniCacheBuilder: events get [7,8,3], others get [1,2,3]
+      // Owner gets additional [10|11, 9] based on current status
+      const isEvent = c.type_id === 6;
+      const types = isEvent ? [7, 8, 3] : [1, 2, 3];
+      if (userId && c.user_id === userId) {
+        types.push(c.status_id === 2 ? 10 : 11); // Ready to search or Temp unavailable
+        types.push(9); // Archive
+      }
+      return types;
+    })(),
   };
 }
 
