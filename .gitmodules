@@ -1,3 +1,4 @@
 [submodule "public/_frontend"]
 	path = public/_frontend
 	url = https://github.com/hxdimpf/oc-frontend.git
+	branch = dev-hx
