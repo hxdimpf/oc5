@@ -59,7 +59,7 @@ export async function newCachePage(req, res) {
 }
 
 export async function newCacheSubmit(req, res) {
-  const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, edit_id } = req.body;
+  const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
 
   let lat = null, lon = null;
@@ -71,10 +71,16 @@ export async function newCacheSubmit(req, res) {
   if (editId) {
     const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: lat, longitude: lon });
     if (!wp) return res.status(403).send('Not authorized');
+    // Also save personal cache note if provided
+    if (cache_note !== undefined) {
+      const cacheId = await ocGetCacheIdByWp(wp);
+      if (cacheId) await ocSaveCacheNote(cacheId, req.user.id, (cache_note||'').trim());
+    }
     res.redirect(`/cache/${wp}`);
   } else {
     if (lat===null) return res.status(400).send('Invalid coordinates');
     const result = await ocInsertCache({ user_id: req.user.id, name, lon, lat, type, country, date_hidden, size, difficulty, terrain, desc, hint, short_desc });
+    if (cache_note) await ocSaveCacheNote(result.id, req.user.id, cache_note.trim());
     res.redirect(`/cache/${result.wp_oc}`);
   }
 }
