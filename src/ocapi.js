@@ -264,13 +264,18 @@ export async function ocGetCacheForEdit(wp, userId) {
 }
 
 export async function ocInsertCache(data) {
-  await pool.query(`INSERT INTO caches (uuid, user_id, name, longitude, latitude, type, status, country, date_hidden, size, difficulty, terrain, node, date_created, last_modified, listing_last_modified, meta_last_modified, wp_gc, wp_gc_maintained, wp_nc, desc_languages, default_desclang, need_npa_recalc, flags_last_modified)
-    VALUES (UUID(),?,?,?,?,?,1,?,?,?,?,?,4, NOW(), NOW(), NOW(), NOW(), '', '', '', '', '', 0, NOW())`,
-    [data.user_id, data.name, data.lon, data.lat, data.type||1, data.country||'DE', data.date_hidden||new Date().toISOString().slice(0,10), data.size||1, data.difficulty||2, data.terrain||2]);
-  const [r] = await pool.query('SELECT LAST_INSERT_ID() as id, (SELECT wp_oc FROM caches WHERE cache_id=LAST_INSERT_ID()) as wp_oc');
-  await pool.query(`INSERT INTO cache_desc (uuid, cache_id, language, \`desc\`, hint, short_desc, date_created, last_modified, node) VALUES (UUID(),?,'EN',?,?,?,NOW(),?,4)`,
-    [r.id, data.desc||'', data.hint||'', data.short_desc||'', new Date().toISOString().slice(0,19).replace('T',' ')]);
-  return { id: r.id, wp_oc: r.wp_oc };
+  const conn = await pool.getConnection();
+  try {
+    await conn.query(`INSERT INTO caches (uuid, user_id, name, longitude, latitude, type, status, country, date_hidden, size, difficulty, terrain, node, date_created, last_modified, listing_last_modified, meta_last_modified, wp_gc, wp_gc_maintained, wp_nc, desc_languages, default_desclang, need_npa_recalc, flags_last_modified)
+      VALUES (UUID(),?,?,?,?,?,1,?,?,?,?,?,4, NOW(), NOW(), NOW(), NOW(), '', '', '', '', '', 0, NOW())`,
+      [data.user_id, data.name, data.lon, data.lat, data.type||1, data.country||'DE', data.date_hidden||new Date().toISOString().slice(0,10), data.size||1, data.difficulty||2, data.terrain||2]);
+    const [r] = await conn.query('SELECT LAST_INSERT_ID() as id, (SELECT wp_oc FROM caches WHERE cache_id=LAST_INSERT_ID()) as wp_oc');
+    await conn.query(`INSERT INTO cache_desc (uuid, cache_id, language, \`desc\`, hint, short_desc, date_created, last_modified, node) VALUES (UUID(),?,'EN',?,?,?,NOW(),?,4)`,
+      [r.id, data.desc||'', data.hint||'', data.short_desc||'', new Date().toISOString().slice(0,19).replace('T',' ')]);
+    return { id: r.id, wp_oc: r.wp_oc };
+  } finally {
+    conn.release();
+  }
 }
 
 export async function ocUpdateCache(cacheId, userId, fields) {
