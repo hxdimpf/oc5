@@ -59,8 +59,9 @@ export async function newCachePage(req, res) {
 }
 
 export async function newCacheSubmit(req, res) {
-  const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, edit_id } = req.body;
+  const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, user_coords, waypoints_json, cache_attribs, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
+  const pool = (await import('../db.js')).default;
 
   let lat = null, lon = null;
   if (coords && coords.trim()) {
@@ -71,16 +72,61 @@ export async function newCacheSubmit(req, res) {
   if (editId) {
     const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: lat, longitude: lon });
     if (!wp) return res.status(403).send('Not authorized');
-    // Also save personal cache note if provided
-    if (cache_note !== undefined) {
-      const cacheId = await ocGetCacheIdByWp(wp);
-      if (cacheId) await ocSaveCacheNote(cacheId, req.user.id, (cache_note||'').trim());
+    const cacheId = await ocGetCacheIdByWp(wp);
+    if (!cacheId) return res.status(404).send('Cache not found');
+
+    // Save personal cache note
+    if (cache_note !== undefined) await ocSaveCacheNote(cacheId, req.user.id, (cache_note||'').trim());
+
+    // Save corrected coordinates
+    if (user_coords) {
+      const m2 = user_coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+      if (m2) {
+        let ulat = parseInt(m2[2])+parseFloat(m2[3])/60, ulon = parseInt(m2[5])+parseFloat(m2[6])/60;
+        if (m2[1]==='S') ulat=-ulat; if (m2[4]==='W') ulon=-ulon;
+        await ocSaveCacheCoords(cacheId, req.user.id, ulat, ulon);
+      }
     }
+
+    // Save additional waypoints
+    if (waypoints_json) {
+      try {
+        const wpts = JSON.parse(waypoints_json);
+        await pool.query('DELETE FROM coordinates WHERE cache_id=? AND type=1 AND user_id IS NULL', [cacheId]);
+        const now = new Date().toISOString().slice(0,19).replace('T',' ');
+        for (const w of wpts) {
+          let wlat=0, wlon=0;
+          const m3 = (w.coords||'').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+          if (m3) { wlat=parseInt(m3[2])+parseFloat(m3[3])/60; wlon=parseInt(m3[5])+parseFloat(m3[6])/60; if (m3[1]==='S') wlat=-wlat; if (m3[4]==='W') wlon=-wlon; }
+          await pool.query(
+            'INSERT INTO coordinates (date_created, last_modified, type, subtype, latitude, longitude, cache_id, description) VALUES (?,?,1,?,?,?,?,?)',
+            [now, now, parseInt(w.type)||1, wlat, wlon, cacheId, (w.desc||'').substring(0,80)]
+          );
+        }
+      } catch (e) { /* invalid JSON, skip */ }
+    }
+
     res.redirect(`/cache/${wp}`);
   } else {
     if (lat===null) return res.status(400).send('Invalid coordinates');
     const result = await ocInsertCache({ user_id: req.user.id, name, lon, lat, type, country, date_hidden, size, difficulty, terrain, desc, hint, short_desc });
     if (cache_note) await ocSaveCacheNote(result.id, req.user.id, cache_note.trim());
+    // Save waypoints for new cache
+    if (waypoints_json) {
+      try {
+        const wpts = JSON.parse(waypoints_json);
+        const now = new Date().toISOString().slice(0,19).replace('T',' ');
+        for (const w of wpts) {
+          let wlat=0, wlon=0;
+          const m3 = (w.coords||'').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+          if (m3) { wlat=parseInt(m3[2])+parseFloat(m3[3])/60; wlon=parseInt(m3[5])+parseFloat(m3[6])/60; if (m3[1]==='S') wlat=-wlat; if (m3[4]==='W') wlon=-wlon; }
+          await pool.query(
+            'INSERT INTO coordinates (date_created, last_modified, type, subtype, latitude, longitude, cache_id, description) VALUES (?,?,1,?,?,?,?,?)',
+            [now, now, parseInt(w.type)||1, wlat, wlon, result.id, (w.desc||'').substring(0,80)]
+          );
+        }
+      } catch (e) { /* invalid JSON, skip */ }
+    }
     res.redirect(`/cache/${result.wp_oc}`);
   }
 }
