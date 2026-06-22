@@ -71,7 +71,13 @@
                         {% if user and user.id %}
                         <ul class="navbar-nav me-auto">
                             <li class="nav-item"><a class="nav-link" href="/">{{ i18n['nav.home'] or 'Home' }}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/caches">{{ i18n['nav.search'] or 'Search' }}</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ i18n['nav.search'] or 'Search' }}</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/caches">{{ i18n['Search caches'] or 'Caches' }}</a></li>
+                                    <li><a class="dropdown-item" href="/user">{{ i18n['Search users'] or 'Users' }}</a></li>
+                                </ul>
+                            </li>
                             <li class="nav-item"><a class="nav-link" href="/cache/new">{{ i18n['nav.new_cache'] or 'New Cache' }}</a></li>
                             <li class="nav-item"><a class="nav-link" href="/livemap">{{ i18n['nav.map'] or 'Map' }}</a></li>
                         </ul>
