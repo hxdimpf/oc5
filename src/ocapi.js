@@ -268,7 +268,7 @@ export async function ocInsertCache(data) {
     VALUES (UUID(),?,?,?,?,?,1,?,?,?,?,?,4, NOW(), NOW(), NOW(), NOW())`,
     [data.user_id, data.name, data.lon, data.lat, data.type||1, data.country||'DE', data.date_hidden||new Date().toISOString().slice(0,10), data.size||1, data.difficulty||2, data.terrain||2]);
   const [r] = await pool.query('SELECT LAST_INSERT_ID() as id, (SELECT wp_oc FROM caches WHERE cache_id=LAST_INSERT_ID()) as wp_oc');
-  await pool.query(`INSERT INTO cache_desc (cache_id, language, \`desc\`, hint, short_desc, last_modified, node) VALUES (?,'EN',?,?,?,?,4)`,
+  await pool.query(`INSERT INTO cache_desc (uuid, cache_id, language, \`desc\`, hint, short_desc, date_created, last_modified, node) VALUES (UUID(),?,'EN',?,?,?,NOW(),?,4)`,
     [r.id, data.desc||'', data.hint||'', data.short_desc||'', new Date().toISOString().slice(0,19).replace('T',' ')]);
   return { id: r.id, wp_oc: r.wp_oc };
 }
@@ -498,9 +498,9 @@ export async function ocCreateUser(data) {
   const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   await pool.query(
-    `INSERT INTO user (username, email, password, date_created, last_login, is_active_flag, node)
-     VALUES (?, ?, ?, ?, ?, 0, 4)`,
-    [data.username, data.email, passwordHash, now, now]
+    `INSERT INTO user (uuid, username, email, password, date_created, last_modified, last_login, is_active_flag, latitude, longitude, last_name, first_name, pmr_flag, permanent_login_flag, activation_code, description, node)
+     VALUES (UUID(), ?, ?, ?, ?, ?, ?, 0, 0, 0, '', '', 0, 0, '', '', 4)`,
+    [data.username, data.email, passwordHash, now, now, now]
   );
 
   const [r] = await pool.query('SELECT LAST_INSERT_ID() as id');
