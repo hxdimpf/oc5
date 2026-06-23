@@ -55,8 +55,12 @@ export async function ocGetCacheCounts() {
 // ── Search ────────────────────────────────────────────────────────────
 
 export async function ocCountCachesInBounds(lat1, lat2, lon1, lon2, minDiff, maxDiff) {
-  const [[row]] = await pool.query(
-    `SELECT COUNT(*) as count FROM caches WHERE ${CACHE_BOUNDS_WHERE}`,
+  const [row] = await pool.query(
+    `SELECT COUNT(*) as count FROM caches
+     WHERE latitude > ? AND latitude < ?
+       AND longitude > ? AND longitude < ?
+       AND status IN (1, 2)
+       AND difficulty >= ? AND difficulty <= ?`,
     [lat1, lat2, lon1, lon2, minDiff, maxDiff]
   );
   return Number(row.count);
@@ -151,11 +155,11 @@ export async function ocGetCacheDetail(wp, userId) {
       : Promise.resolve([]),
   ]);
 
-  const [[ownerStats]] = await pool.query(
+  const [ownerStats] = await pool.query(
     'SELECT IFNULL(found,0) AS found, IFNULL(hidden,0) AS hidden FROM stat_user WHERE user_id = ?',
     [c.owner_id]
   );
-  const [[regionRow]] = await pool.query(
+  const [regionRow] = await pool.query(
     'SELECT adm1 FROM cache_location WHERE cache_id = ?', [c.cache_id]
   );
 
