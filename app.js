@@ -9,7 +9,7 @@ import { format as utilFormat } from 'util';
 import 'dotenv/config';
 
 // Flight recorders — ring buffers for the data layer and HTTP layer
-import { defineRecorder, dumpOnError, formatEntry } from './src/flightrecorder.js';
+import { defineRecorder, dumpOnError, formatEntry, adminState, adminSnapshot } from './src/flightrecorder.js';
 defineRecorder('data', 200);   // data layer function calls + timing
 defineRecorder('http', 100);   // request path, method, status, duration
 defineRecorder('sql',  50);    // raw SQL + params (activated on error)
@@ -197,6 +197,14 @@ app.get('/backoffice', backofficeGuard, (req, res) => res.render('backoffice/ind
 app.get('/backoffice/reported-caches', backofficeGuard, (req, res) => res.render('backoffice/reported-caches.njk'));
 app.get('/backoffice/users', backofficeGuard, (req, res) => res.send('User management — coming soon'));
 app.get('/backoffice/roles', backofficeGuard, (req, res) => res.send('Role management — coming soon'));
+
+// ── Flight recorder admin ──────────────────────────────────────────
+app.get('/backoffice/flightrecorder', backofficeGuard, (req, res) => res.json(adminState()));
+app.get('/backoffice/flightrecorder/:name', backofficeGuard, (req, res) => {
+  const snap = adminSnapshot(req.params.name);
+  if (!snap) return res.status(404).json({ error: 'Recorder not found' });
+  res.json({ name: req.params.name, entries: snap });
+});
 
 // Static article pages
 app.get('/imprint', (req, res) => res.render('static/imprint.njk'));
