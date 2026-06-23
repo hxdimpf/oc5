@@ -109,15 +109,32 @@ export function dumpOnError(err) {
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
+// V8 structured stack trace — like GCxM's eventlog.js
+import path from 'path';
+function callerLocation() {
+  const orig = Error.prepareStackTrace;
+  Error.prepareStackTrace = (_, stack) => stack;
+  const e = new Error();
+  Error.captureStackTrace(e, callerLocation);
+  const frame = e.stack?.[0];
+  Error.prepareStackTrace = orig;
+  if (frame) {
+    const file = frame.getFileName() || 'unknown';
+    return { file: path.basename(file), line: frame.getLineNumber() };
+  }
+  return { file: 'unknown', line: 0 };
+}
+
 export function dumpToFile(err, timeline) {
   try {
     mkdirSync('logs', { recursive: true });
     const code = err.code || 'UNKNOWN';
+    const loc = callerLocation();
     const ts = new Date().toISOString().replace(/:/g, '-').slice(0, 19);
     const file = join('logs', `flight-${code}-${ts}.jsonl`);
 
     const header = JSON.stringify({
-      error:  { code, message: err.message, stack: err.stack?.split('\n').slice(0, 3) },
+      error:  { code, message: err.message, location: `${loc.file}:${loc.line}` },
       count:  timeline.length,
       dumped: new Date().toISOString(),
     });
