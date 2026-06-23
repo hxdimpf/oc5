@@ -317,7 +317,7 @@ export async function ocInsertCache(data) {
       [r.id, data.desc || '', data.hint || '', data.short_desc || '',
        new Date().toISOString().slice(0, 19).replace('T', ' ')]
     );
-    return { id: r.id, wp_oc: r.wp_oc };
+    return { id: Number(r.id), wp_oc: r.wp_oc };
   } finally {
     conn.release();
   }

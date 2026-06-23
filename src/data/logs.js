@@ -24,9 +24,10 @@ export async function ocInsertLog(cacheId, userId, type, date, text) {
       [cacheId, userId, type || 3, date, text || '']
     );
     const [r] = await conn.query('SELECT LAST_INSERT_ID() as id');
+    const logId = Number(r.id);
     const [log] = await conn.query(
       "SELECT id, type, DATE_FORMAT(date, '%Y-%m-%d') AS date, text FROM cache_logs WHERE id = ?",
-      [r.id]
+      [logId]
     );
     return log;
   } finally {

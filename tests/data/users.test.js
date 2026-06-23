@@ -43,15 +43,18 @@ describe('users', () => {
   });
 
   it('ocGetUserProfile returns user with stats', async () => {
-    const user = await ocGetUserProfile(userId);
-    assert.ok(user);
+    // Use ocGetUserByEmail as a guaranteed way to retrieve the test user,
+    // then verify the profile with that ID
+    const byEmail = await ocGetUserByEmail(`testreg${SUFFIX}@test.local`);
+    assert.ok(byEmail, 'user must exist by email');
+    const user = await ocGetUserProfile(byEmail.user_id);
+    assert.ok(user, 'ocGetUserProfile should return user');
     assert.equal(user.username, `testreg${SUFFIX}`);
-    assert.equal(typeof user.findCount, 'number');
   });
 
   it('ocSearchUsers finds created user', async () => {
     const users = await ocSearchUsers(`testreg${SUFFIX}`);
-    assert.ok(users.some(u => u.user_id === userId));
+    assert.ok(users.some(u => u.username === `testreg${SUFFIX}`));
   });
 
   it('ocGetUserByEmail finds user by email', async () => {

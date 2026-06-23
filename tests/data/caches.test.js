@@ -78,10 +78,9 @@ describe('caches', () => {
       type: 1, country: 'DE', date_hidden: '2026-06-01', size: 1,
       difficulty: 2, terrain: 2, desc: 'desc', hint: 'hint', short_desc: 'short',
     });
-    assert.ok(result.id > 0);
+    assert.ok(Number(result.id) > 0);
     assert.ok(result.wp_oc.startsWith('OC'));
-    // Cleanup this extra cache
-    await poolDelete(result.id);
+    await poolDelete(Number(result.id));
   });
 
   // ── Search ──────────────────────────────────────────────────────────
@@ -145,8 +144,8 @@ describe('caches', () => {
 });
 
 // Helper to clean up caches created in insert test
+import pool from '../../src/db.js';
 async function poolDelete(id) {
-  const { default: pool } = await import('../../src/db.js');
   await pool.query('DELETE FROM cache_desc WHERE cache_id = ?', [id]);
   await pool.query('DELETE FROM caches WHERE cache_id = ?', [id]);
 }

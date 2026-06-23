@@ -48,17 +48,20 @@ export async function ocGetUserByEmail(email) {
 export async function ocCreateUser(data) {
   const crypto = await import('crypto');
   const passwordHash = crypto.createHash('md5').update(data.password).digest('hex');
-
-  await pool.query(
-    `INSERT INTO user (uuid, username, email, password, date_created, last_modified, last_login,
-      is_active_flag, latitude, longitude, last_name, first_name, pmr_flag, permanent_login_flag,
-      activation_code, description, node)
-     VALUES (UUID(), ?, ?, ?, ?, ?, ?, 0, 0, 0, '', '', 0, 0, '', '', 4)`,
-    [data.username, data.email, passwordHash, now(), now(), now()]
-  );
-
-  const [r] = await pool.query('SELECT LAST_INSERT_ID() as id');
-  return { user_id: r.id, username: data.username };
+  const conn = await pool.getConnection();
+  try {
+    await conn.query(
+      `INSERT INTO user (uuid, username, email, password, date_created, last_modified, last_login,
+        is_active_flag, latitude, longitude, last_name, first_name, pmr_flag, permanent_login_flag,
+        activation_code, description, node)
+       VALUES (UUID(), ?, ?, ?, ?, ?, ?, 0, 0, 0, '', '', 0, 0, '', '', 4)`,
+      [data.username, data.email, passwordHash, now(), now(), now()]
+    );
+    const [r] = await conn.query('SELECT LAST_INSERT_ID() as id');
+    return { user_id: Number(r.id), username: data.username };
+  } finally {
+    conn.release();
+  }
 }
 
 export async function ocCreateActivationCode(userId) {
