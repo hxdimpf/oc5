@@ -69,3 +69,27 @@ export function allowedLogTypes(cacheTypeId, isOwner, currentStatusId) {
   }
   return types;
 }
+
+// ── Flight recorder wrapper for data layer functions ──────────────────
+
+import { record } from '../flightrecorder.js';
+
+/**
+ * Wrap a data layer function with flight recorder tracing.
+ * Records enter (>) and exit (<) events with elapsed time.
+ * Usage: export const ocGetFoo = traced('ocGetFoo', async (arg) => { ... });
+ */
+export function traced(name, fn) {
+  return async (...args) => {
+    const start = Date.now();
+    record('data', '>', name, args.length);
+    try {
+      const result = await fn(...args);
+      record('data', '<', name, `${Date.now() - start}ms`);
+      return result;
+    } catch (e) {
+      record('data', '!', name, e.code || e.message);
+      throw e;
+    }
+  };
+}

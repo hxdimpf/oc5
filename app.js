@@ -1,9 +1,18 @@
+// Timestamp overlay — must be first import
+import './src/log.js';
+
 import express from 'express';
 import nunjucks from 'nunjucks';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { format as utilFormat } from 'util';
 import 'dotenv/config';
+
+// Flight recorders — ring buffers for the data layer and HTTP layer
+import { defineRecorder, dumpOnError } from './src/flightrecorder.js';
+defineRecorder('data', 200);   // data layer function calls + timing
+defineRecorder('http', 100);   // request path, method, status, duration
+defineRecorder('sql',  50);    // raw SQL + params (activated on error)
 
 import auth from './src/auth.js';
 import * as indexRoute from './src/routes/index.js';
@@ -76,6 +85,17 @@ try {
 } catch (e) { console.error('i18n load error:', e.message); }
 
 app.use(auth);
+
+// HTTP flight recorder — record every request
+import { record } from './src/flightrecorder.js';
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    record('http', 'R', req.method, req.originalUrl, res.statusCode, `${Date.now() - start}ms`);
+  });
+  next();
+});
+
 app.use((req, res, next) => {
   res.locals.locale = req.cookies?.oc_locale || 'en';
   const t = i18n_data[res.locals.locale] || i18n_data['en'] || {};
@@ -265,7 +285,18 @@ app.use((req, res) => {
 });
 
 // ── Error handler ────────────────────────────────────────────────────
-app.use(errorHandler);
+app.use((err, req, res, _next) => {
+  // Dump flight recorders on error
+  const dump = dumpOnError(err);
+  if (dump.timeline.length) {
+    console.error('Flight recorder dump:');
+    for (const e of dump.timeline.slice(-20)) {  // last 20 entries
+      console.error(`  [${new Date(e.time).toISOString().slice(11,23)}] ${e.recorder} ${e.type} ${e.args.join(' ')}`);
+    }
+  }
+  // Delegate to structured error handler
+  errorHandler(err, req, res, _next);
+});
 app.use((err, req, res, _next) => {  // fallback for non-API errors
   console.error('Server error:', err.stack || err.message);
   res.status(err.status || 500).render('error/500.njk');

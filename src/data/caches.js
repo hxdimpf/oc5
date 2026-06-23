@@ -1,5 +1,5 @@
 import pool from '../db.js';
-import { fmtDate, coords2Dm, buildWaypointRow, LOG_TYPES, allowedLogTypes } from './shared.js';
+import { fmtDate, coords2Dm, buildWaypointRow, LOG_TYPES, allowedLogTypes, traced } from './shared.js';
 import { ocGetLogsForCache } from './logs.js';
 import { ocGetWaypointsByCacheId } from './waypoints.js';
 
@@ -139,7 +139,7 @@ export async function ocSearchCachesByKeyword(q, type, minDiff, maxDiff, activeO
 
 // ── Cache detail (the big one — assembles cache + desc + attrs + logs + waypoints) ──
 
-export async function ocGetCacheDetail(wp, userId) {
+export const ocGetCacheDetail = traced('ocGetCacheDetail', async (wp, userId) => {
   const [c] = await pool.query(
     `SELECT c.cache_id, c.wp_oc, c.name, c.latitude, c.longitude,
       c.difficulty / 2 AS difficulty, c.terrain / 2 AS terrain,
@@ -264,7 +264,7 @@ export async function ocGetCacheDetail(wp, userId) {
     ianaTimezoneId: 'Europe/Berlin',
     logTypes: allowedLogTypes(c.type_id, userId > 0 && c.user_id === userId ? true : false, c.status_id),
   };
-}
+});
 
 // ── Cache edit / write ────────────────────────────────────────────────
 
@@ -294,7 +294,7 @@ export async function ocGetCacheForEdit(wp, userId) {
   };
 }
 
-export async function ocInsertCache(data) {
+export const ocInsertCache = traced('ocInsertCache', async (data) => {
   const conn = await pool.getConnection();
   try {
     // Generate OC waypoint: OC + 4 uppercase hex + timestamp suffix
@@ -322,7 +322,7 @@ export async function ocInsertCache(data) {
   } finally {
     conn.release();
   }
-}
+});
 
 export async function ocUpdateCache(cacheId, userId, fields) {
   const [existing] = await pool.query('SELECT user_id, wp_oc FROM caches WHERE cache_id = ?', [cacheId]);
