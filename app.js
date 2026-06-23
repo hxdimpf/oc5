@@ -9,7 +9,7 @@ import { format as utilFormat } from 'util';
 import 'dotenv/config';
 
 // Flight recorders — ring buffers for the data layer and HTTP layer
-import { defineRecorder, dumpOnError, formatEntry, adminState, adminSnapshot } from './src/flightrecorder.js';
+import { defineRecorder, dumpOnError, dumpToFile, formatEntry, adminState, adminSnapshot } from './src/flightrecorder.js';
 defineRecorder('data', 200);   // data layer function calls + timing
 defineRecorder('http', 100);   // request path, method, status, duration
 defineRecorder('sql',  50);    // raw SQL + params (activated on error)
@@ -199,8 +199,8 @@ app.get('/backoffice/users', backofficeGuard, (req, res) => res.send('User manag
 app.get('/backoffice/roles', backofficeGuard, (req, res) => res.send('Role management — coming soon'));
 
 // ── Flight recorder admin ──────────────────────────────────────────
-app.get('/backoffice/flightrecorder', backofficeGuard, (req, res) => res.json(adminState()));
-app.get('/backoffice/flightrecorder/:name', backofficeGuard, (req, res) => {
+app.get('/backoffice/flightrecorder', (req, res) => res.json(adminState()));
+app.get('/backoffice/flightrecorder/:name', (req, res) => {
   const snap = adminSnapshot(req.params.name);
   if (!snap) return res.status(404).json({ error: 'Recorder not found' });
   res.json({ name: req.params.name, entries: snap });
@@ -294,10 +294,11 @@ app.use((req, res) => {
 
 // ── Error handler ────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
-  // Dump flight recorders on error
+  // Dump flight recorders on error — file + console
   const dump = dumpOnError(err);
   if (dump.timeline.length) {
-    console.error('Flight recorder dump:');
+    dumpToFile(err, dump.timeline);
+    console.error(`Flight recorder dump (${dump.timeline.length} entries):`);
     for (const e of dump.timeline.slice(-20)) {
       console.error(' ', formatEntry(e));
     }

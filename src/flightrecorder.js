@@ -76,16 +76,20 @@ export function record(src, type, payload = {}) {
   r.ring.push({ t: Date.now(), src, type, ...payload });
 }
 
-// ── Error-triggered dumping ─────────────────────────────────────────────
+// ── Error types → recorder dump matrix ─────────────────────────────────
 
 const ERROR_TRIGGERS = {
-  SqlError:        ['sql', 'data'],
-  ValidationError: ['http'],
-  '*':             ['data', 'http'],
+  SQL_ERROR:          ['sql', 'data'],         // DB query failures — full query log + data trace
+  ERR_VALIDATION:     ['http'],                // Input validation — HTTP request log
+  ERR_AUTH:           ['http'],                // Auth failures — HTTP request log
+  ERR_NOT_FOUND:      ['http'],                // 404s — HTTP request log (minimal)
+  ERR_INTERNAL:       ['sql', 'data', 'http'], // Unhandled — dump everything
+  '*':                ['data', 'http'],        // Catch-all
 };
 
 export function dumpOnError(err) {
-  const triggers = ERROR_TRIGGERS[err.code || err.constructor?.name] || ERROR_TRIGGERS['*'];
+  const code = err.code || err.constructor?.name || '*';
+  const triggers = ERROR_TRIGGERS[code] || ERROR_TRIGGERS['*'];
   const timeline = [];
 
   for (const name of triggers) {
@@ -97,7 +101,27 @@ export function dumpOnError(err) {
   }
 
   timeline.sort((a, b) => a.t - b.t);
-  return { error: { code: err.code || 'ERROR', message: err.message }, timeline };
+  return { error: { code, message: err.message }, timeline };
+}
+
+// ── File dump ──────────────────────────────────────────────────────────
+
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+
+export function dumpToFile(err, timeline) {
+  try {
+    mkdirSync('logs', { recursive: true });
+    const ts = new Date().toISOString().replace(/:/g, '-').slice(0, 19);
+    const file = join('logs', `flight-${ts}.jsonl`);
+    const lines = timeline.map(e => JSON.stringify(e));
+    writeFileSync(file, lines.join('\n') + '\n');
+    console.error(`Flight recorder dump written to ${file} (${lines.length} entries)`);
+    return file;
+  } catch (e) {
+    console.error('Failed to write flight recorder dump:', e.message);
+    return null;
+  }
 }
 
 // ── Trace formatter ─────────────────────────────────────────────────────

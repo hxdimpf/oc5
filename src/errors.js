@@ -6,15 +6,15 @@
  */
 
 const registry = {
-  NOT_FOUND:           { status: 404, message: 'Not found' },
-  LOGIN_REQUIRED:      { status: 401, message: 'Login required' },
-  FORBIDDEN:           { status: 403, message: 'Not authorized' },
+  ERR_NOT_FOUND:       { status: 404, message: 'Not found' },
+  ERR_AUTH:            { status: 401, message: 'Login required' },
+  ERR_FORBIDDEN:       { status: 403, message: 'Not authorized' },
   LOG_PASSWORD:        { status: 403, message: 'Log password required' },
   OWNER_ONLY:          { status: 403, message: 'Only the cache owner can perform this action' },
   DUPLICATE_LOG:       { status: 409, message: 'You have already logged this type' },
-  BAD_REQUEST:         { status: 400, message: 'Bad request' },
+  ERR_VALIDATION:      { status: 400, message: 'Bad request' },
   INVALID_COORDS:      { status: 400, message: 'Invalid coordinates' },
-  INTERNAL:            { status: 500, message: 'Internal server error' },
+  ERR_INTERNAL:        { status: 500, message: 'Internal server error' },
 };
 
 /**
@@ -40,7 +40,7 @@ export function errorHandler(e, req, res, _next) {
     return res.status(e.status).json({ error: { code: e.code, message: e.message } });
   }
   console.error('Unhandled error:', e.stack || e.message);
-  res.status(500).json({ error: { code: 'INTERNAL', message: 'Internal server error' } });
+  res.status(500).json({ error: { code: 'ERR_INTERNAL', message: 'Internal server error' } });
 }
 
 /**
