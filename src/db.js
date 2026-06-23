@@ -24,15 +24,15 @@ function wrapQuery(obj, orig) {
 
     if (record) {
       const short = typeof sql === 'string' ? sql.replace(/\s+/g, ' ').trim().slice(0, 120) : 'raw';
-      record('sql', '?', short, params ? params.length : 0);
+      record('sql', '?', { sql: short, n: params ? params.length : 0 });
     }
 
     try {
       const result = await orig(sql, params);
-      if (record) record('sql', 'ok', `${Date.now() - start}ms`);
+      if (record) record('sql', 'ok', { ms: Date.now() - start });
       return result;
     } catch (e) {
-      if (record) record('sql', '!', e.code || 'SqlError', `${Date.now() - start}ms`);
+      if (record) record('sql', '!', { err: e.code || 'SqlError', ms: Date.now() - start });
       throw e;
     }
   };

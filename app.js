@@ -9,7 +9,7 @@ import { format as utilFormat } from 'util';
 import 'dotenv/config';
 
 // Flight recorders — ring buffers for the data layer and HTTP layer
-import { defineRecorder, dumpOnError } from './src/flightrecorder.js';
+import { defineRecorder, dumpOnError, formatEntry } from './src/flightrecorder.js';
 defineRecorder('data', 200);   // data layer function calls + timing
 defineRecorder('http', 100);   // request path, method, status, duration
 defineRecorder('sql',  50);    // raw SQL + params (activated on error)
@@ -91,7 +91,7 @@ import { record } from './src/flightrecorder.js';
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    record('http', 'R', req.method, req.originalUrl, res.statusCode, `${Date.now() - start}ms`);
+    record('http', 'R', { method: req.method, path: req.originalUrl, status: res.statusCode, ms: Date.now() - start });
   });
   next();
 });
@@ -290,8 +290,8 @@ app.use((err, req, res, _next) => {
   const dump = dumpOnError(err);
   if (dump.timeline.length) {
     console.error('Flight recorder dump:');
-    for (const e of dump.timeline.slice(-20)) {  // last 20 entries
-      console.error(`  [${new Date(e.time).toISOString().slice(11,23)}] ${e.recorder} ${e.type} ${e.args.join(' ')}`);
+    for (const e of dump.timeline.slice(-20)) {
+      console.error(' ', formatEntry(e));
     }
   }
   // Delegate to structured error handler

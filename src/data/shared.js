@@ -82,13 +82,13 @@ import { record } from '../flightrecorder.js';
 export function traced(name, fn) {
   return async (...args) => {
     const start = Date.now();
-    record('data', '>', name, args.length);
+    record('data', '>', { fn: name, args: args.length });
     try {
       const result = await fn(...args);
-      record('data', '<', name, `${Date.now() - start}ms`);
+      record('data', '<', { fn: name, ms: Date.now() - start });
       return result;
     } catch (e) {
-      record('data', '!', name, e.code || e.message);
+      record('data', '!', { fn: name, err: e.code || e.message });
       throw e;
     }
   };

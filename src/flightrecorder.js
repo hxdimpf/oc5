@@ -4,11 +4,14 @@
  * Buffers ALWAYS run. Always wrap around. No enable/disable — that guarantees
  * data is missing when you need it most.
  *
- * Config defines:
- *   - depth per recorder (ring buffer capacity)
- *   - error triggers: which recorders dump when a specific error fires
+ * Record format (all entries):
+ *   { t, src, type, ...payload }
  *
- * Record entries are compact: [timestamp, type, ...args]
+ * Payload varies by recorder:
+ *   data:  { fn, args?, ms? }
+ *   http:  { method, path, status, ms }
+ *   sql:   { sql, n?, ms?, err? }
+ *
  * A TraceFormatter expands and merges them into a linear timeline for rendering.
  */
 
@@ -22,14 +25,12 @@ class RingBuffer {
     this.count = 0;
   }
 
-  /** Push a compact entry: [timestamp, eventType, ...args] */
   push(entry) {
     this.buf[this.idx] = entry;
     this.idx = (this.idx + 1) % this.depth;
     if (this.count < this.depth) this.count++;
   }
 
-  /** Return all entries in chronological order */
   drain() {
     if (this.count === 0) return [];
     const entries = [];
@@ -57,22 +58,22 @@ class RingBuffer {
 
 const recorders = {};
 
-/**
- * Define a flight recorder. Always on, always wrapping.
- * @param {string} name
- * @param {number} depth  ring buffer capacity
- */
 export function defineRecorder(name, depth) {
   const r = { name, ring: new RingBuffer(depth), depth };
   recorders[name] = r;
   return r;
 }
 
-/** Record an event to a named recorder. Always writing. */
-export function record(name, type, ...args) {
-  const r = recorders[name];
-  if (!r) return;  // undefined recorder — silently skip
-  r.ring.push([Date.now(), type, ...args]);
+/**
+ * Record an event. Always writing.
+ * @param {string} src     recorder name ('data', 'http', 'sql')
+ * @param {string} type    event type ('>', '<', '!', '?', 'ok', 'R')
+ * @param {object} payload recorder-specific payload (fn, sql, method, ms, …)
+ */
+export function record(src, type, payload = {}) {
+  const r = recorders[src];
+  if (!r) return;
+  r.ring.push({ t: Date.now(), src, type, ...payload });
 }
 
 // ── Error-triggered dumping ─────────────────────────────────────────────
@@ -83,11 +84,6 @@ const ERROR_TRIGGERS = {
   '*':             ['data', 'http'],
 };
 
-/**
- * When an error occurs, dump configured recorders and return merged timeline.
- * @param {Error} err
- * @returns {object} { error, timeline }
- */
 export function dumpOnError(err) {
   const triggers = ERROR_TRIGGERS[err.code || err.constructor?.name] || ERROR_TRIGGERS['*'];
   const timeline = [];
@@ -95,32 +91,27 @@ export function dumpOnError(err) {
   for (const name of triggers) {
     const r = recorders[name];
     if (!r) continue;
-    const entries = r.drain();
-    for (const e of entries) {
-      timeline.push({ recorder: name, time: e[0], type: e[1], args: e.slice(2) });
+    for (const e of r.drain()) {
+      timeline.push(e);
     }
   }
 
-  timeline.sort((a, b) => a.time - b.time);
-  return { error: { code: err.code, message: err.message }, timeline };
+  timeline.sort((a, b) => a.t - b.t);
+  return { error: { code: err.code || 'ERROR', message: err.message }, timeline };
 }
 
 // ── Trace formatter ─────────────────────────────────────────────────────
 
-const TYPE_NAMES = {
-  '>': 'enter', '<': 'exit', '!': 'error', '?': 'query', 'R': 'request', 'S': 'response',
-};
+const TYPE_LABELS = { '>': 'enter', '<': 'exit', '!': 'error', '?': 'query', 'ok': 'ok', 'R': 'request' };
 
-/**
- * Expand a raw flight recorder entry to a human-readable line.
- * @param {{ recorder: string, time: number, type: string, args: any[] }} entry
- * @returns {string}
- */
-export function formatEntry(entry) {
-  const ts = new Date(entry.time).toISOString().slice(11, 23);
-  const type = TYPE_NAMES[entry.type] || entry.type;
-  const detail = entry.args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-  return `[${ts}] ${entry.recorder.padEnd(6)} ${type.padEnd(8)} ${detail}`;
+export function formatEntry(e) {
+  const ts = new Date(e.t).toISOString().slice(11, 23);
+  const type = TYPE_LABELS[e.type] || e.type;
+  let detail = '';
+  if (e.src === 'data')  detail = `${e.fn || ''} ${e.ms ? e.ms + 'ms' : ''} ${e.args ? '(' + e.args + ' args)' : ''}`;
+  if (e.src === 'http')  detail = `${e.method || ''} ${e.path || ''} → ${e.status || ''} ${e.ms ? e.ms + 'ms' : ''}`;
+  if (e.src === 'sql')   detail = `${e.sql || ''} ${e.n != null ? '(' + e.n + ' params)' : ''} ${e.ms ? e.ms + 'ms' : ''}`;
+  return `[${ts}] ${e.src.padEnd(6)} ${type.padEnd(7)} ${detail}`;
 }
 
 // ── Admin API ───────────────────────────────────────────────────────────
@@ -137,8 +128,7 @@ export function adminSnapshot(name) {
   const r = recorders[name];
   if (!r) return null;
   return r.ring.snapshot().map(e => ({
-    time: new Date(e[0]).toISOString(),
-    type: TYPE_NAMES[e[1]] || e[1],
-    args: e.slice(2),
+    time: new Date(e.t).toISOString(),
+    ...e,
   }));
 }
