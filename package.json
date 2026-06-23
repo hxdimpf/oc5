@@ -6,7 +6,9 @@
   "main": "app.js",
   "scripts": {
     "start": "nodemon app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "node --test tests/data/*.test.js",
+    "test:ci": "node --test --test-reporter=spec tests/data/*.test.js"
   },
   "dependencies": {
     "dotenv": "^16.5.0",

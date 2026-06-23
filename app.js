@@ -11,7 +11,7 @@ import * as searchRoute from './src/routes/search.js';
 import * as userRoute from './src/routes/user.js';
 import * as cachesRoute from './src/routes/caches.js';
 import { ocGetGeocodeCity } from './src/routes/geocode.js';
-import { ocLogin } from './src/ocapi.js';
+import { ocLogin } from './src/data/sessions.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -180,7 +180,7 @@ app.get('/donations', (req, res) => res.render('static/donations.njk'));
 
 // Registration & password reset
 import { ocCheckUsername, ocCheckEmail, ocCreateUser, ocCreateActivationCode,
-  ocActivateUser, ocSetPasswordResetToken, ocResetPassword, ocGetUserByEmail } from './src/ocapi.js';
+  ocActivateUser, ocSetPasswordResetToken, ocResetPassword, ocGetUserByEmail } from './src/data/users.js';
 
 app.get('/register', (req, res) => res.render('register.njk'));
 app.post('/register', async (req, res) => {

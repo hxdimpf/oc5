@@ -1,10 +1,7 @@
-import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes,
-  ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocSaveUserNoteText, ocInsertLog,
-  ocGetCacheDetail, ocGetWaypointsByWp, ocGetCacheIdByWp, ocSearchCachesByKeyword,
-  ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs,
-  ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus,
-  ocSaveUserCoords, ocSaveLogPassword, ocReplaceWaypoints,
-  ocSearchCachesByBounds, ocCountCachesInBounds } from '../ocapi.js';
+import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes } from '../data/lookups.js';
+import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGetCacheIdByWp, ocSearchCachesByKeyword, ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus, ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
+import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
+import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
 import { decimalToDm } from '../data/shared.js';
 
 export async function searchPage(req, res) {

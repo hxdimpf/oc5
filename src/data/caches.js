@@ -174,7 +174,7 @@ export async function ocGetCacheDetail(wp, userId) {
     } catch {}
   } else {
     try {
-      const { sanitizeDescription: sd } = await import('../sanitize.mjs');
+      const { sanitizeDescription: sd } = await import('../sanitize.js');
       descriptionHtml = sd('', shortHtml + (d?.desc || ''), c.wp_oc);
     } catch {}
   }

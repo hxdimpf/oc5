@@ -1,4 +1,4 @@
-import { ocSearchUsers, ocGetUserProfile } from '../ocapi.js';
+import { ocSearchUsers, ocGetUserProfile } from '../data/users.js';
 
 export async function apiSearch(req, res) {
   const q = (req.query.q || '').trim();

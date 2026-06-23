@@ -1,4 +1,4 @@
-import { ocSearchCachesByBounds, ocCountCachesInBounds } from '../ocapi.js';
+import { ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
 
 export async function liveCaches(req, res) {
   const lat1 = parseFloat(req.query.lat1) || 0;
