@@ -1,3 +1,37 @@
+/**
+ * Cache routes — HTML pages and JSON API endpoints.
+ *
+ * Each handler is a thin glue layer:
+ *   parse input → call data function(s) → render/respond.
+ *
+ * All data access lives in src/data/ (caches.js, logs.js, waypoints.js, lookups.js).
+ * Coordinate utilities are shared with the frontend via oc-frontend/shared/coords.js.
+ *
+ * Route table (registered in app.js):
+ *
+ *   HTML pages:
+ *     GET  /caches              → searchPage
+ *     GET  /cache/new           → newForm
+ *     POST /cache/new           → upsert
+ *     GET  /cache/:wp           → detail
+ *
+ *   JSON API — cache data:
+ *     GET  /api/cache/:wp        → get
+ *     GET  /api/caches/search    → search
+ *     GET  /api/caches/live      → live
+ *     GET  /api/caches/waypoints → waypoints
+ *
+ *   JSON API — logs:
+ *     POST   /api/cache/:wp/log          → createLog
+ *     PUT    /api/cache/:wp/log/:logId   → updateLog
+ *     DELETE /api/cache/:wp/log/:logId   → deleteLog
+ *
+ *   JSON API — user data:
+ *     POST /api/cache/:wp/note   → saveNote
+ *     POST /api/cache/:wp/coords → saveCoords
+ *     POST /api/cache/:wp/logpw  → saveLogpw
+ */
+
 import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes } from '../data/lookups.js';
 import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGetCacheIdByWp, ocSearchCachesByKeyword, ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus, ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
 import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
@@ -6,6 +40,13 @@ import { coords2Dm, coords2LatLon } from '../../public/_frontend/shared/coords.j
 
 // ── Private helpers ─────────────────────────────────────────────────────
 
+/**
+ * Parse a waypoints JSON string from the new-cache form into the format
+ * expected by ocReplaceWaypoints().
+ *
+ * @param {string|null} json  Serialized waypoint array from form POST
+ * @returns {{ subtype: number, latitude: number, longitude: number, description: string }[]}
+ */
 function parseWaypoints(json) {
   if (!json) return [];
   try {
@@ -16,6 +57,15 @@ function parseWaypoints(json) {
   } catch { return []; }
 }
 
+/**
+ * Auth guard for JSON endpoints. Returns 401 if req.user is not logged in,
+ * otherwise executes the provided handler block.
+ *
+ * @param {object} req   Express request
+ * @param {object} res   Express response
+ * @param {function} block  Handler to run if authenticated
+ * @returns {*} Response or block result
+ */
 function optionalAuth(req, res, block) {
   if (!req.user.id) return res.status(401).json({ error: 'Login required' });
   return block();
@@ -23,11 +73,24 @@ function optionalAuth(req, res, block) {
 
 // ── HTML pages ──────────────────────────────────────────────────────────
 
+/**
+ * GET /caches
+ * Renders the cache search page with type dropdown populated from the DB.
+ * Called by: main navigation "Search" link.
+ */
 export async function searchPage(req, res) {
   const types = await ocGetCacheTypes();
   res.render('caches/search.njk', { types });
 }
 
+/**
+ * GET /cache/new?edit=OCxxxxx
+ * Renders the new-cache form. When `?edit=WP` is present and the user owns
+ * that cache, the form is pre-populated for editing.
+ *
+ * Called by: "New Cache" button, or "Edit" link on cache detail page.
+ * Pre-fills: form defaults, coordinates (from query or user home), waypoints.
+ */
 export async function newForm(req, res) {
   const locale = 'EN';
   const [types, sizes, countries] = await Promise.all([ocGetCacheTypes(locale), ocGetCacheSizes(locale), ocGetCountries(locale)]);
@@ -68,11 +131,29 @@ export async function newForm(req, res) {
   res.render('caches/new.njk', { types, sizes, countries, languages, attrs, wptTypes, editCache, editDesc, editAttribs, editNote, editWpts, editCoords: editCoords || fromCoords, editDateHidden, form, errors: {}, is_edit: !!editCache, edit_cache_id: editCache?.cache_id || 0 });
 }
 
+/**
+ * GET /cache/:wp
+ * Renders the cache detail page. The frontend JS (cache.js) then fetches
+ * /api/cache/:wp to populate the listing data client-side.
+ *
+ * @param {string} req.params.wp  OC waypoint code (e.g. "OC18BB7")
+ */
 export async function detail(req, res) {
   const cache = await ocGetCacheDetail(req.params.wp.toUpperCase(), req.user.id);
   res.render('caches/detail.njk', { wp: req.params.wp, cache, cache_json: cache ? JSON.stringify(cache) : null });
 }
 
+/**
+ * POST /cache/new
+ * Creates a new cache or updates an existing one (when edit_id is set).
+ * Handles waypoints, personal note, and corrected coordinates in one transaction.
+ *
+ * @param {object}  req.body             All form fields from newcache.njk
+ * @param {number}  req.body.edit_id     If set, updates existing cache (owner-only)
+ * @param {string}  req.body.coords      Coordinates in DM format
+ * @param {string}  req.body.waypoints_json  Serialized additional waypoints
+ * @returns {redirect} 302 to /cache/:wp on success, 400 on invalid coords, 403 on auth failure
+ */
 export async function upsert(req, res) {
   const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, user_coords, waypoints_json, cache_attribs, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
@@ -103,14 +184,34 @@ export async function upsert(req, res) {
   }
 }
 
-// ── JSON API (browser → cache detail, search, livemap) ──────────────────
+// ── JSON API — cache data ───────────────────────────────────────────────
 
+/**
+ * GET /api/cache/:wp
+ * Returns the full cache detail object as JSON. Called by cache.js on page load
+ * to populate the listing table, map, logs, waypoints, and attributes.
+ *
+ * @param {string} req.params.wp  OC waypoint code
+ * @returns {object}  Cache detail (UniCache-compatible shape), or 404
+ */
 export async function get(req, res) {
   const data = await ocGetCacheDetail(req.params.wp.toUpperCase(), req.user.id);
   if (!data) return res.status(404).json({ error: 'Cache not found' });
   res.json(data);
 }
 
+/**
+ * GET /api/caches/search?q=&type=&minDiff=&maxDiff=&activeOnly=
+ * Full-text keyword search across WP codes, GC codes, cache names, and usernames.
+ * Returns simplified cache summaries for the search results Tabulator table.
+ *
+ * @param {string}  req.query.q          Search term
+ * @param {number}  req.query.type       Cache type ID filter (0 = all)
+ * @param {number}  req.query.minDiff    Minimum difficulty (1-5)
+ * @param {number}  req.query.maxDiff    Maximum difficulty (1-5)
+ * @param {string}  req.query.activeOnly "0" to include disabled/archived
+ * @returns {{ items: object[] }}  Array of cache summary objects
+ */
 export async function search(req, res) {
   const q = (req.query.q || '').trim(), type = parseInt(req.query.type) || 0;
   const minDiff = Math.round((parseFloat(req.query.minDiff) || 1) * 2), maxDiff = Math.round((parseFloat(req.query.maxDiff) || 5) * 2);
@@ -129,6 +230,15 @@ export async function search(req, res) {
   res.json({ items });
 }
 
+/**
+ * GET /api/caches/live?lat1=&lat2=&lon1=&lon2=&minDiff=&maxDiff=
+ * Bounding-box cache search for the livemap. Returns count + full cache summaries.
+ * Difficulty values are raw DB values (2-10), doubled from the 1-5 scale.
+ *
+ * @param {number} req.query.lat1,lat2,lon1,lon2  Bounding box (any corner order)
+ * @param {number} req.query.minDiff,maxDiff       Difficulty range in DB units (default 2-10)
+ * @returns {{ count: number, items: object[] }}
+ */
 export async function live(req, res) {
   const lat1 = parseFloat(req.query.lat1) || 0, lat2 = parseFloat(req.query.lat2) || 0;
   const lon1 = parseFloat(req.query.lon1) || 0, lon2 = parseFloat(req.query.lon2) || 0;
@@ -165,6 +275,14 @@ export async function live(req, res) {
   res.json({ count, items });
 }
 
+/**
+ * GET /api/caches/waypoints?wp=OCxxxxx
+ * Returns the additional waypoints for a cache. Used by the standalone
+ * waypoints API and the cache detail map.
+ *
+ * @param {string} req.query.wp  OC waypoint code
+ * @returns {{ wpts: { lat, lon, name, description, subtype }[] }}
+ */
 export async function waypoints(req, res) {
   const wp = (req.query.wp || '').trim();
   if (!wp) return res.json({ wpts: [] });
@@ -174,6 +292,20 @@ export async function waypoints(req, res) {
 
 // ── JSON API — logs ─────────────────────────────────────────────────────
 
+/**
+ * POST /api/cache/:wp/log
+ * Creates a new log entry. Enforces:
+ *   - Log password on Found (1) / Attended (7) types
+ *   - Owner-only restriction on Archive (9) / Ready (10) / Disable (11)
+ *   - Duplicate prevention for Found / Attended
+ *
+ * @param {string}  req.params.wp    OC waypoint code
+ * @param {number}  req.body.type    Log type ID
+ * @param {string}  req.body.date    "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+ * @param {string}  req.body.text    Log text
+ * @param {string}  req.body.password  Log password (required for Found/Attended)
+ * @returns {{ saved: true, log: object }}
+ */
 export async function createLog(req, res) {
   return optionalAuth(req, res, async () => {
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
@@ -202,6 +334,14 @@ export async function createLog(req, res) {
   });
 }
 
+/**
+ * PUT /api/cache/:wp/log/:logId
+ * Updates an existing log entry. Same validation rules as createLog.
+ * Ownership of the log is verified — only the original author can edit.
+ *
+ * @param {number} req.params.logId  Log ID to update
+ * @returns {{ saved: true }} or error
+ */
 export async function updateLog(req, res) {
   return optionalAuth(req, res, async () => {
     const logId = parseInt(req.params.logId) || 0;
@@ -231,6 +371,13 @@ export async function updateLog(req, res) {
   });
 }
 
+/**
+ * DELETE /api/cache/:wp/log/:logId
+ * Deletes a log entry. Only the original author can delete their own log.
+ *
+ * @param {number} req.params.logId  Log ID to delete
+ * @returns {{ deleted: true }} or error
+ */
 export async function deleteLog(req, res) {
   return optionalAuth(req, res, async () => {
     const result = await ocDeleteLog(parseInt(req.params.logId) || 0, req.user.id);
@@ -240,6 +387,13 @@ export async function deleteLog(req, res) {
 
 // ── JSON API — user data (note, coords, log password) ──────────────────
 
+/**
+ * POST /api/cache/:wp/note
+ * Saves or clears the user's personal cache note. Empty text deletes the note.
+ *
+ * @param {string} req.body.text  Note text (empty to delete)
+ * @returns {{ saved: boolean }}
+ */
 export async function saveNote(req, res) {
   return optionalAuth(req, res, async () => {
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
@@ -249,6 +403,14 @@ export async function saveNote(req, res) {
   });
 }
 
+/**
+ * POST /api/cache/:wp/coords
+ * Saves the user's corrected coordinates for a cache (personal, not public).
+ *
+ * @param {number} req.body.lat  Decimal latitude
+ * @param {number} req.body.lon  Decimal longitude
+ * @returns {{ saved: boolean }}
+ */
 export async function saveCoords(req, res) {
   return optionalAuth(req, res, async () => {
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
@@ -259,6 +421,14 @@ export async function saveCoords(req, res) {
   });
 }
 
+/**
+ * POST /api/cache/:wp/logpw
+ * Saves a personal log password for a cache. Used when the cache owner changes
+ * the log password — each finder stores their own copy to prove they solved it.
+ *
+ * @param {string} req.body.logpw  Log password to store
+ * @returns {{ saved: boolean }}
+ */
 export async function saveLogpw(req, res) {
   return optionalAuth(req, res, async () => {
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
