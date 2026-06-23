@@ -14,28 +14,39 @@ const pool = createPool({
   connectTimeout: 5000,
 });
 
-// ── SQL flight recorder — wrap pool.query to capture every query ──────
+// ── SQL flight recorder — wrap pool.query and pool.getConnection ──────
+
+function wrapQuery(obj, orig) {
+  return async function(sql, params) {
+    const start = Date.now();
+    let record;
+    try { record = (await import('./flightrecorder.js')).record; } catch { /* not loaded yet */ }
+
+    if (record) {
+      const short = typeof sql === 'string' ? sql.replace(/\s+/g, ' ').trim().slice(0, 120) : 'raw';
+      record('sql', '?', short, params ? params.length : 0);
+    }
+
+    try {
+      const result = await orig(sql, params);
+      if (record) record('sql', 'ok', `${Date.now() - start}ms`);
+      return result;
+    } catch (e) {
+      if (record) record('sql', '!', e.code || 'SqlError', `${Date.now() - start}ms`);
+      throw e;
+    }
+  };
+}
 
 const origQuery = pool.query.bind(pool);
-pool.query = async function(sql, params) {
-  const start = Date.now();
-  let record;
-  try { record = (await import('./flightrecorder.js')).record; } catch { /* recorder not loaded yet */ }
+pool.query = wrapQuery(pool, origQuery);
 
-  if (record) {
-    // Truncate SQL to first 120 chars, just enough to identify the query
-    const short = typeof sql === 'string' ? sql.replace(/\s+/g, ' ').trim().slice(0, 120) : 'raw';
-    record('sql', '?', short, params ? params.length : 0);
-  }
-
-  try {
-    const result = await origQuery(sql, params);
-    if (record) record('sql', 'ok', `${Date.now() - start}ms`);
-    return result;
-  } catch (e) {
-    if (record) record('sql', '!', e.code || 'SqlError', `${Date.now() - start}ms`);
-    throw e;
-  }
+const origGetConn = pool.getConnection.bind(pool);
+pool.getConnection = async function() {
+  const conn = await origGetConn();
+  const origConnQuery = conn.query.bind(conn);
+  conn.query = wrapQuery(conn, origConnQuery);
+  return conn;
 };
 
 export default pool;
