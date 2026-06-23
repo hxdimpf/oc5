@@ -38,7 +38,7 @@ describe('sessions', () => {
     const decoded = JSON.parse(Buffer.from(cookie, 'base64').toString());
     const session = await ocValidateSession(decoded.sessionid);
     assert.ok(session);
-    assert.equal(session.userId, user.id);
+    assert.equal(Number(session.userId), Number(user.id));
   });
 
   it('ocValidateSession returns null for invalid UUID', async () => {
