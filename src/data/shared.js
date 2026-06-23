@@ -1,8 +1,8 @@
 import pool from '../db.js';
 
-// ── Coordinate helpers (single source: oc-frontend/shared/coords.js) ──
+// ── Coordinate helpers (shared with frontend via public/shared/coords.js) ──
 
-import { coords2Dm } from '../../public/_frontend/shared/coords.js';
+import { coords2Dm } from '../../public/shared/coords.js';
 export { coords2Dm };
 
 // ── Date helpers ─────────────────────────────────────────────────────

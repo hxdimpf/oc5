@@ -26,12 +26,16 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Static assets — submodule content at /_frontend and root (for loader.js root-relative paths)
-app.use('/_frontend', express.static(path.join(__dirname, 'public/_frontend')));
-app.use(express.static(path.join(__dirname, 'public/_frontend')));   // /js/*, /css/*, /vendor/*
-app.use('/images', express.static(path.join(__dirname, 'public/images')));   // /images/*
-app.use('/_frontend/images', express.static(path.join(__dirname, 'public/images'))); // legacy _frontend prefix
-app.use('/docs', express.static(path.join(__dirname, 'public/docs')));       // architecture presentation
+// Static assets — served directly from public/
+app.use('/js',      express.static(path.join(__dirname, 'public/js')));
+app.use('/css',     express.static(path.join(__dirname, 'public/css')));
+app.use('/vendor',  express.static(path.join(__dirname, 'public/vendor')));
+app.use('/images',  express.static(path.join(__dirname, 'public/images')));
+app.use('/shared',  express.static(path.join(__dirname, 'public/shared')));
+app.use('/docs',    express.static(path.join(__dirname, 'public/docs')));
+// Legacy _frontend paths from the now-removed oc-frontend mount
+app.use('/_frontend', express.static(path.join(__dirname, 'public')));
+app.use('/_frontend/images', express.static(path.join(__dirname, 'public/images')));
 app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'public/favicon.ico')));
 
 const nunjucksEnv = nunjucks.configure(path.join(__dirname, 'public/templates/nunjucks'), {

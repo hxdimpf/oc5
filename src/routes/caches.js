@@ -36,7 +36,7 @@ import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGet
 import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGetCacheIdByWp, ocSearchCachesByKeyword, ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus, ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
 import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
 import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
-import { coords2Dm, coords2LatLon } from '../../public/_frontend/shared/coords.js';
+import { coords2Dm, coords2LatLon } from '../../public/shared/coords.js';
 
 // ── Private helpers ─────────────────────────────────────────────────────
 
