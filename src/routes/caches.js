@@ -37,6 +37,8 @@ import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGe
 import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
 import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
 import { coords2Dm, coords2LatLon } from '../../public/shared/coords.js';
+import { validate } from '../validate.js';
+import { fail } from '../errors.js';
 
 // ── Private helpers ─────────────────────────────────────────────────────
 
@@ -333,20 +335,22 @@ export async function waypoints(req, res) {
  */
 export async function createLog(req, res) {
   return requireAuth(req, res, async () => {
-    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
-    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+    const v = validate(req.body, { type: 'int', date: 'date?', text: 'text' });
+    if (!v.ok) return fail(res, 'BAD_REQUEST', v.errors);
 
-    const { type, date, text, password } = req.body;
-    const logType = parseInt(type) || 3;
-    const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+    if (!cacheId) return fail(res, 'NOT_FOUND');
+
+    const logType = v.values.type || 3;
+    const logDate = v.values.date && v.values.date.length === 10 ? v.values.date + ' 00:00:00' : v.values.date;
 
     const err = await validateLog({
       cacheId, logpw: await ocGetCacheLogpw(cacheId),
-      logType, password, userId: req.user.id, excludeLogId: 0,
+      logType, password: v.values.password, userId: req.user.id, excludeLogId: 0,
     });
     if (err) return res.status(err.status).json(err);
 
-    const log = await ocInsertLog(cacheId, req.user.id, logType, logDate, text);
+    const log = await ocInsertLog(cacheId, req.user.id, logType, logDate, v.values.text);
     res.json({ saved: true, log });
   });
 }
@@ -361,10 +365,12 @@ export async function createLog(req, res) {
  */
 export async function updateLog(req, res) {
   return requireAuth(req, res, async () => {
+    const v = validate(req.body, { type: 'int', date: 'date?', text: 'text' });
+    if (!v.ok) return fail(res, 'BAD_REQUEST', v.errors);
+
     const logId = parseInt(req.params.logId) || 0;
-    const { type, date, text, password } = req.body;
-    const logType = parseInt(type) || 3;
-    const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+    const logType = v.values.type || 3;
+    const logDate = v.values.date && v.values.date.length === 10 ? v.values.date + ' 00:00:00' : v.values.date;
 
     const logRow = await ocGetLogById(logId);
     if (!logRow) return res.status(404).json({ error: 'Log not found' });
@@ -372,11 +378,11 @@ export async function updateLog(req, res) {
 
     const err = await validateLog({
       cacheId: logRow.cache_id, logpw: logRow.cache_logpw || '',
-      logType, password, userId: req.user.id, excludeLogId: logId,
+      logType, password: v.values.password, userId: req.user.id, excludeLogId: logId,
     });
     if (err) return res.status(err.status).json(err);
 
-    const result = await ocUpdateLog(logId, req.user.id, logType, logDate, text);
+    const result = await ocUpdateLog(logId, req.user.id, logType, logDate, v.values.text);
     res.json(result);
   });
 }
@@ -406,9 +412,10 @@ export async function deleteLog(req, res) {
  */
 export async function saveNote(req, res) {
   return requireAuth(req, res, async () => {
+    const v = validate(req.body, { text: 'text' });
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
-    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-    const result = await ocSaveUserNoteText(cacheId, req.user.id, (req.body.text || '').trim());
+    if (!cacheId) return fail(res, 'NOT_FOUND');
+    const result = await ocSaveUserNoteText(cacheId, req.user.id, (v.values.text || '').trim());
     res.json(result);
   });
 }
@@ -423,11 +430,11 @@ export async function saveNote(req, res) {
  */
 export async function saveCoords(req, res) {
   return requireAuth(req, res, async () => {
+    const v = validate(req.body, { lat: 'float', lon: 'float' });
+    if (!v.ok) return fail(res, 'BAD_REQUEST', v.errors);
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
-    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-    const { lat, lon } = req.body;
-    if (lat == null || lon == null) return res.status(400).json({ error: 'lat and lon required' });
-    res.json(await ocSaveUserCoords(cacheId, req.user.id, parseFloat(lat), parseFloat(lon)));
+    if (!cacheId) return fail(res, 'NOT_FOUND');
+    res.json(await ocSaveUserCoords(cacheId, req.user.id, v.values.lat, v.values.lon));
   });
 }
 
@@ -441,8 +448,9 @@ export async function saveCoords(req, res) {
  */
 export async function saveLogpw(req, res) {
   return requireAuth(req, res, async () => {
+    const v = validate(req.body, { logpw: 'text' });
     const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
-    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-    res.json(await ocSaveLogPassword(cacheId, req.user.id, req.body.logpw || ''));
+    if (!cacheId) return fail(res, 'NOT_FOUND');
+    res.json(await ocSaveLogPassword(cacheId, req.user.id, v.values.logpw || ''));
   });
 }
