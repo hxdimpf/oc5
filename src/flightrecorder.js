@@ -112,11 +112,18 @@ import { join } from 'path';
 export function dumpToFile(err, timeline) {
   try {
     mkdirSync('logs', { recursive: true });
+    const code = err.code || 'UNKNOWN';
     const ts = new Date().toISOString().replace(/:/g, '-').slice(0, 19);
-    const file = join('logs', `flight-${ts}.jsonl`);
+    const file = join('logs', `flight-${code}-${ts}.jsonl`);
+
+    const header = JSON.stringify({
+      error:  { code, message: err.message, stack: err.stack?.split('\n').slice(0, 3) },
+      count:  timeline.length,
+      dumped: new Date().toISOString(),
+    });
     const lines = timeline.map(e => JSON.stringify(e));
-    writeFileSync(file, lines.join('\n') + '\n');
-    console.error(`Flight recorder dump written to ${file} (${lines.length} entries)`);
+    writeFileSync(file, header + '\n' + lines.join('\n') + '\n');
+    console.error(`Flight recorder dump → ${file} (${lines.length} entries)`);
     return file;
   } catch (e) {
     console.error('Failed to write flight recorder dump:', e.message);
