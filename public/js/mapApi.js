@@ -6,6 +6,7 @@
  ***************************************************************************/
 
 import { apiFetch } from './helpers.js';
+import { tracelog } from './tracelog.js';
 
 // ---------------------------------------------------------------
 // City search → Nominatim via Symfony backend.
@@ -61,15 +62,17 @@ export async function ocSearchByBbox(s, w, n, e, skip, _take, filter) {
 
 export async function getCacheWPs(referenceCode) {
   if (!referenceCode) return null;
+  const start = performance.now();
   try {
     const data = await apiFetch('/api/caches/waypoints?wp=' + encodeURIComponent(referenceCode));
     const wpts = (data.wpts || []).map(w => ({
       ...w,
       coordinates: { latitude: w.lat, longitude: w.lon },
     }));
+    tracelog('mapApi', 'getCacheWPs', performance.now() - start);
     return { wpts };
   } catch (err) {
-    console.log('getCacheWPs:', err);
+    tracelog('mapApi', 'getCacheWPs:err', performance.now() - start);
     return null;
   }
 }
