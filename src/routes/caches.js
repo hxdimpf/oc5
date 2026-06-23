@@ -1,17 +1,11 @@
 import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes,
-  ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocSaveCacheNote, ocInsertLog,
-  ocGetCacheDetail, ocGetCacheWaypoints, ocGetCacheIdByWp, ocSearchCachesByKeyword,
+  ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocSaveUserNoteText, ocInsertLog,
+  ocGetCacheDetail, ocGetWaypointsByWp, ocGetCacheIdByWp, ocSearchCachesByKeyword,
   ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs,
   ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus,
-  ocSaveCacheCoords, ocSaveCacheLogpw } from '../ocapi.js';
-
-function decimalToDm(lat, lon) {
-  const ns = lat < 0 ? 'S' : 'N', ew = lon < 0 ? 'W' : 'E';
-  const alat = Math.abs(lat), alon = Math.abs(lon);
-  const latDeg = Math.floor(alat), lonDeg = Math.floor(alon);
-  const latMin = (alat - latDeg) * 60, lonMin = (alon - lonDeg) * 60;
-  return `${ns}${String(latDeg).padStart(2,'0')} ${latMin.toFixed(3).padStart(6,'0')} ${ew}${String(lonDeg).padStart(3,'0')} ${lonMin.toFixed(3).padStart(6,'0')}`;
-}
+  ocSaveUserCoords, ocSaveLogPassword, ocReplaceWaypoints,
+  ocSearchCachesByBounds, ocCountCachesInBounds } from '../ocapi.js';
+import { decimalToDm } from '../data/shared.js';
 
 export async function searchPage(req, res) {
   const types = await ocGetCacheTypes();
@@ -58,75 +52,64 @@ export async function newCachePage(req, res) {
   res.render('caches/new.njk', { types, sizes, countries, languages, attrs, wptTypes, editCache, editDesc, editAttribs, editNote, editWpts, editCoords: editCoords||fromCoords, editDateHidden, form, errors: {}, is_edit: !!editCache, edit_cache_id: editCache?.cache_id||0 });
 }
 
+// Parse coordinate string like "N52 20.171 E009 36.865" to decimal lat/lon
+function parseCoords(coords) {
+  if (!coords) return null;
+  const m = coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+  if (!m) return null;
+  let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
+  let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
+  if (m[1] === 'S') lat = -lat;
+  if (m[4] === 'W') lon = -lon;
+  return { lat, lon };
+}
+
+// Parse waypoint JSON into format ocReplaceWaypoints expects
+function parseWaypoints(waypoints_json) {
+  if (!waypoints_json) return [];
+  try {
+    const wpts = JSON.parse(waypoints_json);
+    return wpts.map(w => {
+      const c = parseCoords(w.coords || '');
+      return {
+        subtype: parseInt(w.type) || 1,
+        latitude: c ? c.lat : 0,
+        longitude: c ? c.lon : 0,
+        description: (w.desc || '').substring(0, 80),
+      };
+    });
+  } catch { return []; }
+}
+
 export async function newCacheSubmit(req, res) {
   const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, user_coords, waypoints_json, cache_attribs, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
-  const pool = (await import('../db.js')).default;
 
-  let lat = null, lon = null;
-  if (coords && coords.trim()) {
-    const m = coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-    if (m) { lat = parseInt(m[2])+parseFloat(m[3])/60; lon = parseInt(m[5])+parseFloat(m[6])/60; if (m[1]==='S') lat=-lat; if (m[4]==='W') lon=-lon; }
-  }
+  const parsed = parseCoords(coords);
 
   if (editId) {
-    const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: lat, longitude: lon });
+    const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: parsed?.lat, longitude: parsed?.lon });
     if (!wp) return res.status(403).send('Not authorized');
     const cacheId = await ocGetCacheIdByWp(wp);
     if (!cacheId) return res.status(404).send('Cache not found');
 
-    // Save personal cache note
-    if (cache_note !== undefined) await ocSaveCacheNote(cacheId, req.user.id, (cache_note||'').trim());
+    if (cache_note !== undefined) await ocSaveUserNoteText(cacheId, req.user.id, (cache_note || '').trim());
 
-    // Save corrected coordinates
-    if (user_coords) {
-      const m2 = user_coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-      if (m2) {
-        let ulat = parseInt(m2[2])+parseFloat(m2[3])/60, ulon = parseInt(m2[5])+parseFloat(m2[6])/60;
-        if (m2[1]==='S') ulat=-ulat; if (m2[4]==='W') ulon=-ulon;
-        await ocSaveCacheCoords(cacheId, req.user.id, ulat, ulon);
-      }
-    }
+    const uc = parseCoords(user_coords);
+    if (uc) await ocSaveUserCoords(cacheId, req.user.id, uc.lat, uc.lon);
 
-    // Save additional waypoints
-    if (waypoints_json) {
-      try {
-        const wpts = JSON.parse(waypoints_json);
-        await pool.query('DELETE FROM coordinates WHERE cache_id=? AND type=1 AND user_id IS NULL', [cacheId]);
-        const now = new Date().toISOString().slice(0,19).replace('T',' ');
-        for (const w of wpts) {
-          let wlat=0, wlon=0;
-          const m3 = (w.coords||'').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-          if (m3) { wlat=parseInt(m3[2])+parseFloat(m3[3])/60; wlon=parseInt(m3[5])+parseFloat(m3[6])/60; if (m3[1]==='S') wlat=-wlat; if (m3[4]==='W') wlon=-wlon; }
-          await pool.query(
-            'INSERT INTO coordinates (date_created, last_modified, type, subtype, latitude, longitude, cache_id, description) VALUES (?,?,1,?,?,?,?,?)',
-            [now, now, parseInt(w.type)||1, wlat, wlon, cacheId, (w.desc||'').substring(0,80)]
-          );
-        }
-      } catch (e) { /* invalid JSON, skip */ }
-    }
+    const wpts = parseWaypoints(waypoints_json);
+    if (wpts.length) await ocReplaceWaypoints(cacheId, wpts);
 
     res.redirect(`/cache/${wp}`);
   } else {
-    if (lat===null) return res.status(400).send('Invalid coordinates');
-    const result = await ocInsertCache({ user_id: req.user.id, name, lon, lat, type, country, date_hidden, size, difficulty, terrain, desc, hint, short_desc });
-    if (cache_note) await ocSaveCacheNote(result.id, req.user.id, cache_note.trim());
-    // Save waypoints for new cache
-    if (waypoints_json) {
-      try {
-        const wpts = JSON.parse(waypoints_json);
-        const now = new Date().toISOString().slice(0,19).replace('T',' ');
-        for (const w of wpts) {
-          let wlat=0, wlon=0;
-          const m3 = (w.coords||'').match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-          if (m3) { wlat=parseInt(m3[2])+parseFloat(m3[3])/60; wlon=parseInt(m3[5])+parseFloat(m3[6])/60; if (m3[1]==='S') wlat=-wlat; if (m3[4]==='W') wlon=-wlon; }
-          await pool.query(
-            'INSERT INTO coordinates (date_created, last_modified, type, subtype, latitude, longitude, cache_id, description) VALUES (?,?,1,?,?,?,?,?)',
-            [now, now, parseInt(w.type)||1, wlat, wlon, result.id, (w.desc||'').substring(0,80)]
-          );
-        }
-      } catch (e) { /* invalid JSON, skip */ }
-    }
+    if (!parsed) return res.status(400).send('Invalid coordinates');
+    const result = await ocInsertCache({ user_id: req.user.id, name, lon: parsed.lon, lat: parsed.lat, type, country, date_hidden, size, difficulty, terrain, desc, hint, short_desc });
+    if (cache_note) await ocSaveUserNoteText(result.id, req.user.id, cache_note.trim());
+
+    const wpts = parseWaypoints(waypoints_json);
+    if (wpts.length) await ocReplaceWaypoints(result.id, wpts);
+
     res.redirect(`/cache/${result.wp_oc}`);
   }
 }
@@ -138,17 +121,17 @@ export async function detail(req, res) {
 }
 
 export async function apiSearch(req, res) {
-  const q = (req.query.q||'').trim(), type = parseInt(req.query.type)||0;
-  const minDiff = Math.round((parseFloat(req.query.minDiff)||1)*2), maxDiff = Math.round((parseFloat(req.query.maxDiff)||5)*2);
+  const q = (req.query.q || '').trim(), type = parseInt(req.query.type) || 0;
+  const minDiff = Math.round((parseFloat(req.query.minDiff) || 1) * 2), maxDiff = Math.round((parseFloat(req.query.maxDiff) || 5) * 2);
   const activeOnly = req.query.activeOnly !== '0';
   const rows = await ocSearchCachesByKeyword(q, type, minDiff, maxDiff, activeOnly, req.user.id);
   const items = rows.map(r => ({
-    referenceCode: r.wp_oc, name: r.name, shortName: r.name.length>25?r.name.slice(0,25)+'…':r.name,
-    lat: r.latitude, lon: r.longitude, geocacheType: { id: r.type_id, name: r.type_name||'' },
+    referenceCode: r.wp_oc, name: r.name, shortName: r.name.length > 25 ? r.name.slice(0, 25) + '…' : r.name,
+    lat: r.latitude, lon: r.longitude, geocacheType: { id: r.type_id, name: r.type_name || '' },
     difficulty: r.difficulty, terrain: r.terrain, ownerAlias: r.username, ownerCode: String(r.username),
-    publishedDate: r.date_created?new Date(r.date_created).toISOString().slice(0,10):'',
-    platform: 'OC', isOwned: req.user.id>0&&r.owner_id===req.user.id,
-    isFound: false, isDNF: false, isCached: false, isDisabled: r.status===2, isArchived: r.status===3,
+    publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0, 10) : '',
+    platform: 'OC', isOwned: req.user.id > 0 && r.owner_id === req.user.id,
+    isFound: false, isDNF: false, isCached: false, isDisabled: r.status === 2, isArchived: r.status === 3,
     hasCC: false, hasPCN: false, pcn: '', isOcOnly: false, isGuessable: false, isPartial: false, isSelected: false,
     favoritePoints: 0, status: r.status,
   }));
@@ -156,10 +139,10 @@ export async function apiSearch(req, res) {
 }
 
 export async function waypoints(req, res) {
-  const wp = (req.query.wp||'').trim();
+  const wp = (req.query.wp || '').trim();
   if (!wp) return res.json({ wpts: [] });
-  const rows = await ocGetCacheWaypoints(wp);
-  res.json({ wpts: rows.map(r => ({ lat: r.latitude, lon: r.longitude, name: r.type_name||'Waypoint', description: r.description||'', subtype: r.subtype })) });
+  const wpts = await ocGetWaypointsByWp(wp);
+  res.json({ wpts: wpts.map(w => ({ lat: w.latitude, lon: w.longitude, name: w.type_name || 'Waypoint', description: w.description || '', subtype: w.typeId })) });
 }
 
 export async function apiDetail(req, res) {
@@ -171,7 +154,7 @@ export async function apiDetail(req, res) {
 export async function saveNote(req, res) {
   const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
   if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-  const result = await ocSaveCacheNote(cacheId, req.user.id, (req.body.text||'').trim());
+  const result = await ocSaveUserNoteText(cacheId, req.user.id, (req.body.text || '').trim());
   res.json(result);
 }
 
@@ -187,7 +170,6 @@ export async function createLog(req, res) {
   const logType = parseInt(type) || 3;
   const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
 
-  // Log password validation for Found (1) and Attended (7)
   if (logType === 1 || logType === 7) {
     const cacheLogpw = await ocGetCacheLogpw(cacheId);
     if (cacheLogpw && cacheLogpw !== (password || '')) {
@@ -195,17 +177,13 @@ export async function createLog(req, res) {
     }
   }
 
-  // Owner-only log types: 9=Archive, 10=Ready to search, 11=Temporarily unavailable
   if (logType === 9 || logType === 10 || logType === 11) {
     const isOwner = await ocIsCacheOwner(cacheId, userId);
     if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
-
-    // Update cache status
     const statusMap = { 9: 3, 10: 1, 11: 2 };
     await ocUpdateCacheStatus(cacheId, statusMap[logType]);
   }
 
-  // Prevent duplicate Found/Attended
   if (logType === 1 || logType === 7) {
     const dups = await ocCountDuplicateLogs(cacheId, userId, logType, 0);
     if (dups > 0) return res.status(409).json({ error: 'You have already logged this type for this cache' });
@@ -224,12 +202,10 @@ export async function updateLog(req, res) {
   const logType = parseInt(type) || 3;
   const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
 
-  // Fetch log to verify ownership and get cache info
   const logRow = await ocGetLogById(logId);
   if (!logRow) return res.status(404).json({ error: 'Log not found' });
   if (logRow.user_id !== userId) return res.status(403).json({ error: 'Not authorized' });
 
-  // Log password validation
   if (logType === 1 || logType === 7) {
     const cacheLogpw = logRow.cache_logpw || '';
     if (cacheLogpw && cacheLogpw !== (password || '')) {
@@ -237,7 +213,6 @@ export async function updateLog(req, res) {
     }
   }
 
-  // Owner-only types
   if (logType === 9 || logType === 10 || logType === 11) {
     const isOwner = await ocIsCacheOwner(logRow.cache_id, userId);
     if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
@@ -245,7 +220,6 @@ export async function updateLog(req, res) {
     await ocUpdateCacheStatus(logRow.cache_id, statusMap[logType]);
   }
 
-  // Prevent duplicates (exclude current log)
   if (logType === 1 || logType === 7) {
     const dups = await ocCountDuplicateLogs(logRow.cache_id, userId, logType, logId);
     if (dups > 0) return res.status(409).json({ error: 'You already have a log of this type' });
@@ -277,7 +251,7 @@ export async function saveCoords(req, res) {
   const { lat, lon } = req.body;
   if (lat == null || lon == null) return res.status(400).json({ error: 'lat and lon required' });
 
-  const result = await ocSaveCacheCoords(cacheId, userId, parseFloat(lat), parseFloat(lon));
+  const result = await ocSaveUserCoords(cacheId, userId, parseFloat(lat), parseFloat(lon));
   res.json(result);
 }
 
@@ -290,7 +264,7 @@ export async function saveLogpw(req, res) {
   if (!userId) return res.status(401).json({ error: 'Login required' });
 
   const { logpw } = req.body;
-  const result = await ocSaveCacheLogpw(cacheId, userId, logpw || '');
+  const result = await ocSaveLogPassword(cacheId, userId, logpw || '');
   res.json(result);
 }
 
@@ -303,52 +277,32 @@ export async function apiLive(req, res) {
   const maxDiff = parseInt(req.query.maxDiff) || 10;
   if (lat1 >= lat2 || lon1 >= lon2) return res.json({ count: 0, items: [] });
 
-  const pool = (await import('../db.js')).default;
   const sLat = Math.min(lat1, lat2), nLat = Math.max(lat1, lat2);
   const wLon = Math.min(lon1, lon2), eLon = Math.max(lon1, lon2);
-
   const userId = (req.user?.id) || 0;
-  const rows = await pool.query(
-    `SELECT c.wp_oc, c.name, c.wp_gc, c.type, t.name AS typeName, c.size, s.name AS sizeName,
-     c.difficulty, c.terrain, c.status, c.date_created, c.user_id,
-     c.latitude AS listingLat, c.longitude AS listingLon,
-     u.username AS ownerAlias, u.username AS ownerCode,
-     (SELECT COUNT(*) FROM cache_logs WHERE cache_id=c.cache_id AND type=1) AS findCount,
-     (SELECT COUNT(*) FROM cache_rating WHERE cache_id=c.cache_id) AS favoritePoints,
-     IF(oc6.cache_id IS NOT NULL, 1, 0) AS isOcOnly,
-     IF(fl.id IS NOT NULL, 1, 0) AS isFound,
-     IF(pcn.id IS NOT NULL, 1, 0) AS hasPCN,
-     IF(pcn.id IS NOT NULL AND (pcn.latitude != 0 OR pcn.longitude != 0), 1, 0) AS hasCC,
-     pcn.latitude AS ccLat, pcn.longitude AS ccLon,
-     pcn.description AS pcnText
-     FROM caches c
-     JOIN cache_type t ON c.type=t.id
-     JOIN cache_size s ON c.size=s.id
-     LEFT JOIN user u ON c.user_id=u.user_id
-     LEFT JOIN caches_attributes oc6 ON c.cache_id=oc6.cache_id AND oc6.attrib_id=6
-     LEFT JOIN cache_logs fl ON c.cache_id=fl.cache_id AND fl.user_id=? AND fl.type IN (1,7)
-     LEFT JOIN coordinates pcn ON c.cache_id=pcn.cache_id AND pcn.user_id=? AND pcn.type=2
-     WHERE c.status IN (1,2)
-     AND c.latitude BETWEEN ? AND ? AND c.longitude BETWEEN ? AND ?
-     AND c.difficulty BETWEEN ? AND ?
-     LIMIT 5000`,
-    [userId, userId, sLat, nLat, wLon, eLon, minDiff, maxDiff]
-  );
+
+  const [count, rows] = await Promise.all([
+    ocCountCachesInBounds(sLat, nLat, wLon, eLon, minDiff, maxDiff),
+    ocSearchCachesByBounds({ sLat, nLat, wLon, eLon, minDiff, maxDiff, maxItems: 5000 }, userId),
+  ]);
 
   const items = rows.map(r => ({
-    _id: r.wp_oc, referenceCode: r.wp_oc, name: r.name,
-    lat: r.hasCC ? Number(r.ccLat) : Number(r.listingLat), lon: r.hasCC ? Number(r.ccLon) : Number(r.listingLon),
+    _id: r.referenceCode, referenceCode: r.referenceCode, name: r.name,
+    lat: r.hasCC ? Number(r.ccLat) : Number(r.listingLat),
+    lon: r.hasCC ? Number(r.ccLon) : Number(r.listingLon),
     listingLat: Number(r.listingLat), listingLon: Number(r.listingLon),
-    geocacheType: { id: Number(r.type), name: r.typeName }, geocacheSize: { id: Number(r.size), name: r.sizeName },
-    difficulty: Number(r.difficulty)/2, terrain: Number(r.terrain)/2,
-    isArchived: false, isDisabled: r.status === 2, isFound: !!r.isFound, foundDate: '',
+    geocacheType: { id: Number(r.typeId), name: r.typeName },
+    geocacheSize: { id: Number(r.sizeId), name: r.sizeName },
+    difficulty: r.difficulty, terrain: r.terrain,
+    isArchived: false, isDisabled: Number(r.status) === 2,
+    isFound: !!r.isFound, foundDate: r.foundDate || '',
     hasCC: !!r.hasCC, hasPCN: !!r.hasPCN,
     ownerAlias: r.ownerAlias, ownerCode: String(r.ownerCode),
-    publishedDate: r.date_created ? new Date(r.date_created).toISOString().slice(0,10) : '',
+    publishedDate: r.publishedDate ? new Date(r.publishedDate).toISOString().slice(0, 10) : '',
     favoritePoints: Number(r.favoritePoints), findCount: Number(r.findCount),
-    shortName: (r.name||'').length > 25 ? r.name.slice(0,25)+'…' : r.name,
-    platform: 'OC', isOwned: (userId && r.user_id === userId), isSelected: false,
+    shortName: (r.name || '').length > 25 ? r.name.slice(0, 25) + '…' : r.name,
+    platform: 'OC', isOwned: !!r.isOwned, isSelected: false,
     isOcOnly: !!r.isOcOnly, pcn: r.pcnText || '',
   }));
-  res.json({ count: items.length, items });
+  res.json({ count, items });
 }
