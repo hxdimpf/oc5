@@ -37,6 +37,46 @@ const CACHE_BOUNDS_WHERE = `c.latitude > ? AND c.latitude < ?
         AND c.status IN (1, 2)
         AND c.difficulty >= ? AND c.difficulty <= ?`;
 
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Render a cache description to sanitized HTML.
+ * Detects markdown vs HTML/BBCode and processes accordingly.
+ */
+async function renderDescription(descRow, wp) {
+  const shortHtml = descRow?.short_desc ? `<p><b>${descRow.short_desc}</b></p>` : '';
+  const raw = descRow?.desc || '';
+  if (!raw) return shortHtml;
+
+  // If it looks like plain text (no HTML tags, no BBCode), render as markdown
+  const hasHtml = /<[a-z][\s\S]*>/i.test(raw);
+  const hasBbcode = /\[(\/?(b|i|u|url|img|quote|color|size|list|table|center|font|code))[^\]]*\]/i.test(raw);
+  if (!hasHtml && !hasBbcode) {
+    try {
+      const { marked } = await import('marked');
+      return shortHtml + marked.parse(raw, { html: false });
+    } catch {}
+  }
+  // Otherwise sanitize as HTML/BBCode
+  try {
+    const { sanitizeDescription: sd } = await import('../sanitize.js');
+    return sd('', shortHtml + raw, wp);
+  } catch {}
+  return shortHtml + raw;
+}
+
+/**
+ * Determine DNF state by scanning the user's logs for type=2 (Didn't find it).
+ */
+function computeDnf(logs, userId) {
+  if (!userId || !logs) return { dnf: false, date: null };
+  for (const l of logs) {
+    if (Number(l.userId) !== userId) continue;
+    if (Number(l.type) === 2) return { dnf: true, date: l.date };
+  }
+  return { dnf: false, date: null };
+}
+
 // ── Homepage counts ───────────────────────────────────────────────────
 
 export async function ocGetCacheCounts() {
@@ -163,30 +203,9 @@ export async function ocGetCacheDetail(wp, userId) {
     'SELECT adm1 FROM cache_location WHERE cache_id = ?', [c.cache_id]
   );
 
-  // Render description (markdown or HTML/BBCode)
   const d = desc[0];
-  const shortHtml = d?.short_desc ? `<p><b>${d.short_desc}</b></p>` : '';
-  let descriptionHtml = shortHtml + (d?.desc || '');
-  if (d?.desc && !/<[a-z][\s\S]*>/i.test(d.desc) && !/\[(\/?(b|i|u|url|img|quote|color|size|list|table|center|font|code))[^\]]*\]/i.test(d.desc)) {
-    try {
-      const { marked } = await import('marked');
-      descriptionHtml = shortHtml + marked.parse(d.desc, { html: false });
-    } catch {}
-  } else {
-    try {
-      const { sanitizeDescription: sd } = await import('../sanitize.js');
-      descriptionHtml = sd('', shortHtml + (d?.desc || ''), c.wp_oc);
-    } catch {}
-  }
-
-  // Compute DNF state from logs
-  let isNotFound = false, dnfDateVal = null;
-  if (userId) {
-    for (const l of logs) {
-      if (Number(l.userId) !== userId) continue;
-      if (Number(l.type) === 2) { isNotFound = true; if (!dnfDateVal) dnfDateVal = l.date; break; }
-    }
-  }
+  const descriptionHtml = await renderDescription(d, c.wp_oc);
+  const { dnf: isDNF_, date: dnfDateVal } = computeDnf(logs, userId);
 
   return {
     referenceCode: c.wp_oc, name: c.name,
@@ -220,11 +239,11 @@ export async function ocGetCacheDetail(wp, userId) {
     })),
     _context: { userId, userName: 'hxdimpf', isOwner: !!c.is_owned },
     isOwned: !!c.is_owned, isFound: !!c.is_found,
-    isDNF: !c.is_found && isNotFound,
+    isDNF: !c.is_found && isDNF_,
     foundDate: c.found_date ? fmtDate(c.found_date) : null,
     foundDateFmt: c.found_date ? fmtDate(c.found_date) : '',
-    dnfDate: dnfDateVal !== 'DNF' ? dnfDateVal : null,
-    dnfDateFmt: dnfDateVal !== 'DNF' ? (dnfDateVal || '') : '',
+    dnfDate: dnfDateVal || null,
+    dnfDateFmt: dnfDateVal || '',
     hasCC: !!c.has_cc, hasPCN: !!c.has_pcn,
     pcn: noteRows[0]?.description || null,
     findCount: Number(c.find_count), favoritePoints: Number(c.rating_count),
