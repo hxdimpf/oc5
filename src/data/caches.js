@@ -154,7 +154,7 @@ async function reverseGeocodeState(lat, lon) {
     if (!_geocodeCache) _geocodeCache = new Map();
     _geocodeCache.set(key, state);
     return { adm1: state };
-  } catch { return { adm1: '' }; }
+  } catch (e) { console.warn(`reverseGeocodeState failed: ${e.message}`); return { adm1: '' }; }
 }
 
 // ── Cache detail (the big one — assembles cache + desc + attrs + logs + waypoints) ──
