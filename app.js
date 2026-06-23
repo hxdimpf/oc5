@@ -7,7 +7,7 @@ import 'dotenv/config';
 
 import auth from './src/auth.js';
 import * as indexRoute from './src/routes/index.js';
-import * as searchRoute from './src/routes/search.js';
+
 import * as userRoute from './src/routes/user.js';
 import * as cachesRoute from './src/routes/caches.js';
 import { ocGetGeocodeCity } from './src/routes/geocode.js';
@@ -128,22 +128,25 @@ app.get('/livemap', async (req, res) => {
   res.render('maps/livemap.njk', { initLat, initLon, initZoom });
 });
 
+// ── Cache pages ──────────────────────────────────────────────────
 app.get('/caches', cachesRoute.searchPage);
-app.get('/cache/new', cachesRoute.newCachePage);
-app.post('/cache/new', cachesRoute.newCacheSubmit);
+app.get('/cache/new', cachesRoute.newForm);
+app.post('/cache/new', cachesRoute.upsert);
 app.get('/cache/:wp', cachesRoute.detail);
-app.get('/api/caches/live', cachesRoute.apiLive);
-app.get('/api/caches/search', cachesRoute.apiSearch);
+
+// ── Cache JSON API ───────────────────────────────────────────────
+app.get('/api/caches/live', cachesRoute.live);
+app.get('/api/caches/search', cachesRoute.search);
 app.get('/api/caches/waypoints', cachesRoute.waypoints);
-app.get('/api/cache/:wp', cachesRoute.apiDetail);
+app.get('/api/cache/:wp', cachesRoute.get);
 app.post('/api/cache/:wp/note', cachesRoute.saveNote);
-app.post('/api/cache/:wp/log', cachesRoute.createLog);
-app.put('/api/cache/:wp/log/:logId', cachesRoute.updateLog);
-app.delete('/api/cache/:wp/log/:logId', cachesRoute.deleteLog);
 app.post('/api/cache/:wp/coords', cachesRoute.saveCoords);
 app.post('/api/cache/:wp/logpw', cachesRoute.saveLogpw);
 
-app.get('/api/caches/live', searchRoute.liveCaches);
+// ── Logs ─────────────────────────────────────────────────────────
+app.post('/api/cache/:wp/log', cachesRoute.createLog);
+app.put('/api/cache/:wp/log/:logId', cachesRoute.updateLog);
+app.delete('/api/cache/:wp/log/:logId', cachesRoute.deleteLog);
 app.get('/api/geocode/city', ocGetGeocodeCity);
 
 app.get('/user', (req, res) => res.render('user/search.njk'));

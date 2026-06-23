@@ -4,12 +4,42 @@ import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLo
 import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
 import { decimalToDm } from '../data/shared.js';
 
+// ── Private helpers ─────────────────────────────────────────────────────
+
+function parseCoords(str) {
+  if (!str) return null;
+  const m = str.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
+  if (!m) return null;
+  let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
+  let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
+  if (m[1] === 'S') lat = -lat;
+  if (m[4] === 'W') lon = -lon;
+  return { lat, lon };
+}
+
+function parseWaypoints(json) {
+  if (!json) return [];
+  try {
+    return JSON.parse(json).map(w => {
+      const c = parseCoords(w.coords || '');
+      return { subtype: parseInt(w.type) || 1, latitude: c ? c.lat : 0, longitude: c ? c.lon : 0, description: (w.desc || '').substring(0, 80) };
+    });
+  } catch { return []; }
+}
+
+function optionalAuth(req, res, block) {
+  if (!req.user.id) return res.status(401).json({ error: 'Login required' });
+  return block();
+}
+
+// ── HTML pages ──────────────────────────────────────────────────────────
+
 export async function searchPage(req, res) {
   const types = await ocGetCacheTypes();
   res.render('caches/search.njk', { types });
 }
 
-export async function newCachePage(req, res) {
+export async function newForm(req, res) {
   const locale = 'EN';
   const [types, sizes, countries] = await Promise.all([ocGetCacheTypes(locale), ocGetCacheSizes(locale), ocGetCountries(locale)]);
   const [attrs, wptTypes, languages] = await Promise.all([ocGetAllAttributes(), ocGetWaypointTypes(), ocGetLanguages(locale)]);
@@ -19,17 +49,17 @@ export async function newCachePage(req, res) {
   let editCoords = '', editDateHidden = '';
 
   if (editWp) {
-    const editData = await ocGetCacheForEdit(editWp, req.user.id);
-    if (editData) {
-      editCache = editData.cache; editDesc = editData.desc; editAttribs = editData.attribIds;
-      editNote = editData.note; editWpts = editData.wpts;
+    const data = await ocGetCacheForEdit(editWp, req.user.id);
+    if (data) {
+      editCache = data.cache; editDesc = data.desc; editAttribs = data.attribIds;
+      editNote = data.note; editWpts = data.wpts;
       editCoords = decimalToDm(Number(editCache.latitude), Number(editCache.longitude));
-      editDateHidden = editCache.date_hidden ? new Date(editCache.date_hidden).toISOString().slice(0,10) : '';
+      editDateHidden = editCache.date_hidden ? new Date(editCache.date_hidden).toISOString().slice(0, 10) : '';
     }
   }
 
-  const fromLat = (req.query.lat || ''), fromLon = (req.query.lon || '');
-  const fromCoords = fromLat && fromLon ? decimalToDm(parseFloat(fromLat), parseFloat(fromLon)) : '';
+  const fromCoords = req.query.lat && req.query.lon
+    ? decimalToDm(parseFloat(req.query.lat), parseFloat(req.query.lon)) : '';
 
   const form = {
     name: editCache?.name || '', type: editCache?.type ? String(editCache.type) : '',
@@ -41,60 +71,34 @@ export async function newCachePage(req, res) {
     hidden_date: editDateHidden, log_pw: editCache?.logpw || '',
     cache_note: editNote?.description || '',
     user_coords: editNote?.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
-    waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({id:w.id,type:w.subtype,coords:decimalToDm(Number(w.latitude),Number(w.longitude)),desc:w.description}))) : '[]',
+    waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({ id: w.id, type: w.subtype, coords: decimalToDm(Number(w.latitude), Number(w.longitude)), desc: w.description }))) : '[]',
     tos: true, selected_attribs: editAttribs?.length ? editAttribs : [],
     publish: editCache ? 'notnow' : 'now2', activate_date: '', activate_hour: '',
   };
 
-  res.render('caches/new.njk', { types, sizes, countries, languages, attrs, wptTypes, editCache, editDesc, editAttribs, editNote, editWpts, editCoords: editCoords||fromCoords, editDateHidden, form, errors: {}, is_edit: !!editCache, edit_cache_id: editCache?.cache_id||0 });
+  res.render('caches/new.njk', { types, sizes, countries, languages, attrs, wptTypes, editCache, editDesc, editAttribs, editNote, editWpts, editCoords: editCoords || fromCoords, editDateHidden, form, errors: {}, is_edit: !!editCache, edit_cache_id: editCache?.cache_id || 0 });
 }
 
-// Parse coordinate string like "N52 20.171 E009 36.865" to decimal lat/lon
-function parseCoords(coords) {
-  if (!coords) return null;
-  const m = coords.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-  if (!m) return null;
-  let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
-  let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
-  if (m[1] === 'S') lat = -lat;
-  if (m[4] === 'W') lon = -lon;
-  return { lat, lon };
+export async function detail(req, res) {
+  const cache = await ocGetCacheDetail(req.params.wp.toUpperCase(), req.user.id);
+  res.render('caches/detail.njk', { wp: req.params.wp, cache, cache_json: cache ? JSON.stringify(cache) : null });
 }
 
-// Parse waypoint JSON into format ocReplaceWaypoints expects
-function parseWaypoints(waypoints_json) {
-  if (!waypoints_json) return [];
-  try {
-    const wpts = JSON.parse(waypoints_json);
-    return wpts.map(w => {
-      const c = parseCoords(w.coords || '');
-      return {
-        subtype: parseInt(w.type) || 1,
-        latitude: c ? c.lat : 0,
-        longitude: c ? c.lon : 0,
-        description: (w.desc || '').substring(0, 80),
-      };
-    });
-  } catch { return []; }
-}
-
-export async function newCacheSubmit(req, res) {
+export async function upsert(req, res) {
   const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, user_coords, waypoints_json, cache_attribs, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
-
   const parsed = parseCoords(coords);
 
   if (editId) {
     const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: parsed?.lat, longitude: parsed?.lon });
     if (!wp) return res.status(403).send('Not authorized');
+
     const cacheId = await ocGetCacheIdByWp(wp);
     if (!cacheId) return res.status(404).send('Cache not found');
 
     if (cache_note !== undefined) await ocSaveUserNoteText(cacheId, req.user.id, (cache_note || '').trim());
-
     const uc = parseCoords(user_coords);
     if (uc) await ocSaveUserCoords(cacheId, req.user.id, uc.lat, uc.lon);
-
     const wpts = parseWaypoints(waypoints_json);
     if (wpts.length) await ocReplaceWaypoints(cacheId, wpts);
 
@@ -103,7 +107,6 @@ export async function newCacheSubmit(req, res) {
     if (!parsed) return res.status(400).send('Invalid coordinates');
     const result = await ocInsertCache({ user_id: req.user.id, name, lon: parsed.lon, lat: parsed.lat, type, country, date_hidden, size, difficulty, terrain, desc, hint, short_desc });
     if (cache_note) await ocSaveUserNoteText(result.id, req.user.id, cache_note.trim());
-
     const wpts = parseWaypoints(waypoints_json);
     if (wpts.length) await ocReplaceWaypoints(result.id, wpts);
 
@@ -111,13 +114,15 @@ export async function newCacheSubmit(req, res) {
   }
 }
 
-export async function detail(req, res) {
-  const wp = req.params.wp.toUpperCase();
-  const cache = await ocGetCacheDetail(wp, req.user.id);
-  res.render('caches/detail.njk', { wp, cache, cache_json: cache ? JSON.stringify(cache) : null });
+// ── JSON API (browser → cache detail, search, livemap) ──────────────────
+
+export async function get(req, res) {
+  const data = await ocGetCacheDetail(req.params.wp.toUpperCase(), req.user.id);
+  if (!data) return res.status(404).json({ error: 'Cache not found' });
+  res.json(data);
 }
 
-export async function apiSearch(req, res) {
+export async function search(req, res) {
   const q = (req.query.q || '').trim(), type = parseInt(req.query.type) || 0;
   const minDiff = Math.round((parseFloat(req.query.minDiff) || 1) * 2), maxDiff = Math.round((parseFloat(req.query.maxDiff) || 5) * 2);
   const activeOnly = req.query.activeOnly !== '0';
@@ -135,143 +140,10 @@ export async function apiSearch(req, res) {
   res.json({ items });
 }
 
-export async function waypoints(req, res) {
-  const wp = (req.query.wp || '').trim();
-  if (!wp) return res.json({ wpts: [] });
-  const wpts = await ocGetWaypointsByWp(wp);
-  res.json({ wpts: wpts.map(w => ({ lat: w.latitude, lon: w.longitude, name: w.type_name || 'Waypoint', description: w.description || '', subtype: w.typeId })) });
-}
-
-export async function apiDetail(req, res) {
-  const data = await ocGetCacheDetail(req.params.wp.toUpperCase(), req.user.id);
-  if (!data) return res.status(404).json({ error: 'Cache not found' });
-  res.json(data);
-}
-
-export async function saveNote(req, res) {
-  const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
-  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-  const result = await ocSaveUserNoteText(cacheId, req.user.id, (req.body.text || '').trim());
-  res.json(result);
-}
-
-export async function createLog(req, res) {
-  const wp = req.params.wp.toUpperCase();
-  const cacheId = await ocGetCacheIdByWp(wp);
-  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-
-  const userId = req.user.id;
-  if (!userId) return res.status(401).json({ error: 'Login required' });
-
-  const { type, date, text, password } = req.body;
-  const logType = parseInt(type) || 3;
-  const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
-
-  if (logType === 1 || logType === 7) {
-    const cacheLogpw = await ocGetCacheLogpw(cacheId);
-    if (cacheLogpw && cacheLogpw !== (password || '')) {
-      return res.status(403).json({ error: 'Log password required', requirePassword: true });
-    }
-  }
-
-  if (logType === 9 || logType === 10 || logType === 11) {
-    const isOwner = await ocIsCacheOwner(cacheId, userId);
-    if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
-    const statusMap = { 9: 3, 10: 1, 11: 2 };
-    await ocUpdateCacheStatus(cacheId, statusMap[logType]);
-  }
-
-  if (logType === 1 || logType === 7) {
-    const dups = await ocCountDuplicateLogs(cacheId, userId, logType, 0);
-    if (dups > 0) return res.status(409).json({ error: 'You have already logged this type for this cache' });
-  }
-
-  const log = await ocInsertLog(cacheId, userId, logType, logDate, text);
-  res.json({ saved: true, log });
-}
-
-export async function updateLog(req, res) {
-  const userId = req.user.id;
-  if (!userId) return res.status(401).json({ error: 'Login required' });
-
-  const logId = parseInt(req.params.logId) || 0;
-  const { type, date, text, password } = req.body;
-  const logType = parseInt(type) || 3;
-  const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
-
-  const logRow = await ocGetLogById(logId);
-  if (!logRow) return res.status(404).json({ error: 'Log not found' });
-  if (logRow.user_id !== userId) return res.status(403).json({ error: 'Not authorized' });
-
-  if (logType === 1 || logType === 7) {
-    const cacheLogpw = logRow.cache_logpw || '';
-    if (cacheLogpw && cacheLogpw !== (password || '')) {
-      return res.status(403).json({ error: 'Log password required', requirePassword: true });
-    }
-  }
-
-  if (logType === 9 || logType === 10 || logType === 11) {
-    const isOwner = await ocIsCacheOwner(logRow.cache_id, userId);
-    if (!isOwner) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
-    const statusMap = { 9: 3, 10: 1, 11: 2 };
-    await ocUpdateCacheStatus(logRow.cache_id, statusMap[logType]);
-  }
-
-  if (logType === 1 || logType === 7) {
-    const dups = await ocCountDuplicateLogs(logRow.cache_id, userId, logType, logId);
-    if (dups > 0) return res.status(409).json({ error: 'You already have a log of this type' });
-  }
-
-  const result = await ocUpdateLog(logId, userId, logType, logDate, text);
-  if (result.error) return res.status(result.status).json(result);
-  res.json(result);
-}
-
-export async function deleteLog(req, res) {
-  const userId = req.user.id;
-  if (!userId) return res.status(401).json({ error: 'Login required' });
-
-  const logId = parseInt(req.params.logId) || 0;
-  const result = await ocDeleteLog(logId, userId);
-  if (result.error) return res.status(result.status).json(result);
-  res.json(result);
-}
-
-export async function saveCoords(req, res) {
-  const wp = req.params.wp.toUpperCase();
-  const cacheId = await ocGetCacheIdByWp(wp);
-  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-
-  const userId = req.user.id;
-  if (!userId) return res.status(401).json({ error: 'Login required' });
-
-  const { lat, lon } = req.body;
-  if (lat == null || lon == null) return res.status(400).json({ error: 'lat and lon required' });
-
-  const result = await ocSaveUserCoords(cacheId, userId, parseFloat(lat), parseFloat(lon));
-  res.json(result);
-}
-
-export async function saveLogpw(req, res) {
-  const wp = req.params.wp.toUpperCase();
-  const cacheId = await ocGetCacheIdByWp(wp);
-  if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
-
-  const userId = req.user.id;
-  if (!userId) return res.status(401).json({ error: 'Login required' });
-
-  const { logpw } = req.body;
-  const result = await ocSaveLogPassword(cacheId, userId, logpw || '');
-  res.json(result);
-}
-
-export async function apiLive(req, res) {
-  const lat1 = parseFloat(req.query.lat1) || 0;
-  const lat2 = parseFloat(req.query.lat2) || 0;
-  const lon1 = parseFloat(req.query.lon1) || 0;
-  const lon2 = parseFloat(req.query.lon2) || 0;
-  const minDiff = parseInt(req.query.minDiff) || 2;
-  const maxDiff = parseInt(req.query.maxDiff) || 10;
+export async function live(req, res) {
+  const lat1 = parseFloat(req.query.lat1) || 0, lat2 = parseFloat(req.query.lat2) || 0;
+  const lon1 = parseFloat(req.query.lon1) || 0, lon2 = parseFloat(req.query.lon2) || 0;
+  const minDiff = parseInt(req.query.minDiff) || 2, maxDiff = parseInt(req.query.maxDiff) || 10;
   if (lat1 >= lat2 || lon1 >= lon2) return res.json({ count: 0, items: [] });
 
   const sLat = Math.min(lat1, lat2), nLat = Math.max(lat1, lat2);
@@ -302,4 +174,106 @@ export async function apiLive(req, res) {
     isOcOnly: !!r.isOcOnly, pcn: r.pcnText || '',
   }));
   res.json({ count, items });
+}
+
+export async function waypoints(req, res) {
+  const wp = (req.query.wp || '').trim();
+  if (!wp) return res.json({ wpts: [] });
+  const wpts = await ocGetWaypointsByWp(wp);
+  res.json({ wpts: wpts.map(w => ({ lat: w.latitude, lon: w.longitude, name: w.type_name || 'Waypoint', description: w.description || '', subtype: w.typeId })) });
+}
+
+// ── JSON API — logs ─────────────────────────────────────────────────────
+
+export async function createLog(req, res) {
+  return optionalAuth(req, res, async () => {
+    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+
+    const { type, date, text, password } = req.body;
+    const logType = parseInt(type) || 3;
+    const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+
+    if (logType === 1 || logType === 7) {
+      const logpw = await ocGetCacheLogpw(cacheId);
+      if (logpw && logpw !== (password || '')) {
+        return res.status(403).json({ error: 'Log password required', requirePassword: true });
+      }
+    }
+    if (logType === 9 || logType === 10 || logType === 11) {
+      if (!await ocIsCacheOwner(cacheId, req.user.id)) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
+      await ocUpdateCacheStatus(cacheId, { 9: 3, 10: 1, 11: 2 }[logType]);
+    }
+    if (logType === 1 || logType === 7) {
+      if (await ocCountDuplicateLogs(cacheId, req.user.id, logType, 0) > 0) return res.status(409).json({ error: 'You have already logged this type for this cache' });
+    }
+
+    const log = await ocInsertLog(cacheId, req.user.id, logType, logDate, text);
+    res.json({ saved: true, log });
+  });
+}
+
+export async function updateLog(req, res) {
+  return optionalAuth(req, res, async () => {
+    const logId = parseInt(req.params.logId) || 0;
+    const { type, date, text, password } = req.body;
+    const logType = parseInt(type) || 3;
+    const logDate = date && date.length === 10 ? date + ' 00:00:00' : date;
+
+    const logRow = await ocGetLogById(logId);
+    if (!logRow) return res.status(404).json({ error: 'Log not found' });
+    if (logRow.user_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+
+    if (logType === 1 || logType === 7) {
+      if (logRow.cache_logpw && logRow.cache_logpw !== (password || '')) {
+        return res.status(403).json({ error: 'Log password required', requirePassword: true });
+      }
+    }
+    if (logType === 9 || logType === 10 || logType === 11) {
+      if (!await ocIsCacheOwner(logRow.cache_id, req.user.id)) return res.status(403).json({ error: 'Only the cache owner can perform this action' });
+      await ocUpdateCacheStatus(logRow.cache_id, { 9: 3, 10: 1, 11: 2 }[logType]);
+    }
+    if (logType === 1 || logType === 7) {
+      if (await ocCountDuplicateLogs(logRow.cache_id, req.user.id, logType, logId) > 0) return res.status(409).json({ error: 'You already have a log of this type' });
+    }
+
+    const result = await ocUpdateLog(logId, req.user.id, logType, logDate, text);
+    res.json(result);
+  });
+}
+
+export async function deleteLog(req, res) {
+  return optionalAuth(req, res, async () => {
+    const result = await ocDeleteLog(parseInt(req.params.logId) || 0, req.user.id);
+    res.json(result);
+  });
+}
+
+// ── JSON API — user data (note, coords, log password) ──────────────────
+
+export async function saveNote(req, res) {
+  return optionalAuth(req, res, async () => {
+    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+    const result = await ocSaveUserNoteText(cacheId, req.user.id, (req.body.text || '').trim());
+    res.json(result);
+  });
+}
+
+export async function saveCoords(req, res) {
+  return optionalAuth(req, res, async () => {
+    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+    const { lat, lon } = req.body;
+    if (lat == null || lon == null) return res.status(400).json({ error: 'lat and lon required' });
+    res.json(await ocSaveUserCoords(cacheId, req.user.id, parseFloat(lat), parseFloat(lon)));
+  });
+}
+
+export async function saveLogpw(req, res) {
+  return optionalAuth(req, res, async () => {
+    const cacheId = await ocGetCacheIdByWp(req.params.wp.toUpperCase());
+    if (!cacheId) return res.status(404).json({ error: 'Cache not found' });
+    res.json(await ocSaveLogPassword(cacheId, req.user.id, req.body.logpw || ''));
+  });
 }
