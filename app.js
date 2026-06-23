@@ -199,8 +199,8 @@ app.get('/backoffice/users', backofficeGuard, (req, res) => res.send('User manag
 app.get('/backoffice/roles', backofficeGuard, (req, res) => res.send('Role management — coming soon'));
 
 // ── Flight recorder admin ──────────────────────────────────────────
-app.get('/backoffice/flightrecorder', (req, res) => res.json(adminState()));
-app.get('/backoffice/flightrecorder/:name', (req, res) => {
+app.get('/backoffice/flightrecorder', backofficeGuard, (req, res) => res.json(adminState()));
+app.get('/backoffice/flightrecorder/:name', backofficeGuard, (req, res) => {
   const snap = adminSnapshot(req.params.name);
   if (!snap) return res.status(404).json({ error: 'Recorder not found' });
   res.json({ name: req.params.name, entries: snap });
