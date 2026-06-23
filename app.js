@@ -12,6 +12,7 @@ import * as userRoute from './src/routes/user.js';
 import * as cachesRoute from './src/routes/caches.js';
 import { ocGetGeocodeCity } from './src/routes/geocode.js';
 import { ocLogin } from './src/data/sessions.js';
+import { errorHandler } from './src/errors.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -264,7 +265,8 @@ app.use((req, res) => {
 });
 
 // ── Error handler ────────────────────────────────────────────────────
-app.use((err, req, res, _next) => {
+app.use(errorHandler);
+app.use((err, req, res, _next) => {  // fallback for non-API errors
   console.error('Server error:', err.stack || err.message);
   res.status(err.status || 500).render('error/500.njk');
 });
