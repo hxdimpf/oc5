@@ -10,6 +10,8 @@ const pool = createPool({
   password: url.password,
   database: url.pathname.replace('/', ''),
   connectionLimit: 10,
+  acquireTimeout: 5000,   // fail fast instead of hanging forever
+  connectTimeout: 5000,
 });
 
 export default pool;
