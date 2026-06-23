@@ -137,6 +137,26 @@ export async function ocSearchCachesByKeyword(q, type, minDiff, maxDiff, activeO
   return pool.query(sql, params);
 }
 
+// ── Reverse geocode — Nominatim for single cache (low volume, on-demand) ──
+
+let _geocodeCache = null;  // in-memory cache: "lat,lon" → state name
+async function reverseGeocodeState(lat, lon) {
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  if (_geocodeCache?.has(key)) return _geocodeCache.get(key);
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=en`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(url, { headers: { 'User-Agent': 'opencaching.de/5.0' }, signal: ctrl.signal });
+    clearTimeout(t);
+    const data = await res.json();
+    const state = data?.address?.state || '';
+    if (!_geocodeCache) _geocodeCache = new Map();
+    _geocodeCache.set(key, state);
+    return { adm1: state };
+  } catch { return { adm1: '' }; }
+}
+
 // ── Cache detail (the big one — assembles cache + desc + attrs + logs + waypoints) ──
 
 export const ocGetCacheDetail = traced('ocGetCacheDetail', async (wp, userId) => {
@@ -199,9 +219,15 @@ export const ocGetCacheDetail = traced('ocGetCacheDetail', async (wp, userId) =>
     'SELECT IFNULL(found,0) AS found, IFNULL(hidden,0) AS hidden FROM stat_user WHERE user_id = ?',
     [c.owner_id]
   );
-  const [regionRow] = await pool.query(
-    'SELECT adm1 FROM cache_location WHERE cache_id = ?', [c.cache_id]
-  );
+  // State from cache_location (populated by cron) — fall back to Nominatim
+  let regionRow;
+  try {
+    const [rr] = await pool.query('SELECT adm1 FROM cache_location WHERE cache_id = ?', [c.cache_id]);
+    regionRow = rr;
+  } catch { /* table may not exist */ }
+  if (!regionRow?.adm1) {
+    regionRow = await reverseGeocodeState(c.latitude, c.longitude);
+  }
 
   const d = desc[0];
   const descriptionHtml = await renderDescription(d, c.wp_oc);
