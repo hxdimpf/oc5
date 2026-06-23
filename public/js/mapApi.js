@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 import { apiFetch } from './helpers.js';
-import { tracelog } from './tracelog.js';
+import { tracelog, eventlog } from './tracelog.js';
 
 // ---------------------------------------------------------------
 // City search → Nominatim via Symfony backend.
@@ -70,6 +70,7 @@ export async function getCacheWPs(referenceCode) {
       coordinates: { latitude: w.lat, longitude: w.lon },
     }));
     tracelog('mapApi', 'getCacheWPs', performance.now() - start);
+    eventlog('D', 'getCacheWPs response', { wp: referenceCode, count: wpts.length, wpts });
     return { wpts };
   } catch (err) {
     tracelog('mapApi', 'getCacheWPs:err', performance.now() - start);
