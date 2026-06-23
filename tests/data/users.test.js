@@ -1,6 +1,5 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { closePool } from '../helpers.js';
 import {
   ocCheckUsername, ocCheckEmail, ocCreateUser, ocGetUserProfile,
   ocSearchUsers, ocGetUserByEmail,
@@ -16,7 +15,6 @@ describe('users', () => {
     if (userId) {
       await pool.query('DELETE FROM user WHERE user_id = ?', [userId]);
     }
-    await closePool();
   });
 
   it('ocCheckUsername returns false for unique name', async () => {

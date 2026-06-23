@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { createTestUser, createTestCache, cleanup, closePool } from '../helpers.js';
+import { createTestUser, createTestCache, cleanup } from '../helpers.js';
 import {
   ocGetWaypointsByCacheId, ocReplaceWaypoints,
   ocSaveUserCoords, ocSaveLogPassword, ocGetUserNote, ocSaveUserNoteText,
@@ -16,7 +16,6 @@ describe('waypoints', () => {
 
   after(async () => {
     await cleanup(user.id, cache.id);
-    await closePool();
   });
 
   it('ocGetWaypointsByCacheId returns empty array for cache with no waypoints', async () => {

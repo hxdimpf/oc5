@@ -1,6 +1,5 @@
 import { describe, it, after } from 'node:test';
 import assert from 'node:assert';
-import { closePool } from '../helpers.js';
 import {
   ocGetCacheTypes, ocGetCacheSizes, ocGetCountries,
   ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes,
@@ -8,7 +7,6 @@ import {
 
 describe('lookups', () => {
   after(async () => {
-    await closePool();
   });
 
   it('ocGetCacheTypes returns array with id and name', async () => {

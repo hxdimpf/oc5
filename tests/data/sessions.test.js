@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { createTestUser, cleanup, closePool } from '../helpers.js';
+import { createTestUser, cleanup } from '../helpers.js';
 import { ocLogin, ocLogout, ocValidateSession } from '../../src/data/sessions.js';
 
 describe('sessions', () => {
@@ -12,7 +12,6 @@ describe('sessions', () => {
 
   after(async () => {
     await cleanup(user.id, null);
-    await closePool();
   });
 
   it('ocLogin with wrong password returns null', async () => {

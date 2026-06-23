@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { createTestUser, createTestCache, cleanup, closePool } from '../helpers.js';
+import { createTestUser, createTestCache, cleanup } from '../helpers.js';
 import {
   ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog,
   ocCountDuplicateLogs, ocGetLogsForCache,
@@ -16,7 +16,6 @@ describe('logs', () => {
 
   after(async () => {
     await cleanup(user.id, cache.id);
-    await closePool();
   });
 
   it('ocInsertLog creates a log and returns it with id and date', async () => {

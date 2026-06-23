@@ -80,7 +80,7 @@ function computeDnf(logs, userId) {
 // ── Homepage counts ───────────────────────────────────────────────────
 
 export async function ocGetCacheCounts() {
-  const [[cacheRow], [logRow], [userRow]] = await Promise.all([
+  const [cacheRow, logRow, userRow] = await Promise.all([
     pool.query('SELECT COUNT(*) as count FROM caches WHERE status = 1'),
     pool.query('SELECT COUNT(*) as count FROM cache_logs'),
     pool.query("SELECT COUNT(*) as count FROM user WHERE is_active_flag = 1"),
@@ -297,34 +297,35 @@ export async function ocGetCacheForEdit(wp, userId) {
 export async function ocInsertCache(data) {
   const conn = await pool.getConnection();
   try {
+    // Generate OC waypoint: OC + 4 uppercase hex + timestamp suffix
+    const wp = 'OC' + Array.from({length:4}, () => '0123456789ABCDEF'[Math.floor(Math.random()*16)]).join('');
     await conn.query(
       `INSERT INTO caches (uuid, user_id, name, longitude, latitude, type, status, country,
         date_hidden, size, difficulty, terrain, node, date_created, last_modified,
-        listing_last_modified, meta_last_modified, wp_gc, wp_gc_maintained, wp_nc,
+        listing_last_modified, meta_last_modified, wp_oc, wp_gc, wp_gc_maintained, wp_nc,
         desc_languages, default_desclang, need_npa_recalc, flags_last_modified)
        VALUES (UUID(), ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 4, NOW(), NOW(), NOW(), NOW(),
-        '', '', '', '', '', 0, NOW())`,
+        ?, '', '', '', '', '', 0, NOW())`,
       [data.user_id, data.name, data.lon, data.lat, data.type || 1, data.country || 'DE',
        data.date_hidden || new Date().toISOString().slice(0, 10), data.size || 1,
-       data.difficulty || 2, data.terrain || 2]
+       data.difficulty || 2, data.terrain || 2, wp]
     );
-    const [[r]] = await conn.query(
-      'SELECT LAST_INSERT_ID() as id, (SELECT wp_oc FROM caches WHERE cache_id=LAST_INSERT_ID()) as wp_oc'
-    );
+    const [r] = await conn.query('SELECT LAST_INSERT_ID() as id');
+    const cacheId = Number(r.id);
+    const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
     await conn.query(
       `INSERT INTO cache_desc (uuid, cache_id, language, \`desc\`, hint, short_desc, date_created, last_modified, node)
        VALUES (UUID(), ?, 'EN', ?, ?, ?, ?, ?, 4)`,
-      [r.id, data.desc || '', data.hint || '', data.short_desc || '',
-       new Date().toISOString().slice(0, 19).replace('T', ' ')]
+      [cacheId, data.desc || '', data.hint || '', data.short_desc || '', ts, ts]
     );
-    return { id: Number(r.id), wp_oc: r.wp_oc };
+    return { id: cacheId, wp_oc: wp };
   } finally {
     conn.release();
   }
 }
 
 export async function ocUpdateCache(cacheId, userId, fields) {
-  const [[existing]] = await pool.query('SELECT user_id, wp_oc FROM caches WHERE cache_id = ?', [cacheId]);
+  const [existing] = await pool.query('SELECT user_id, wp_oc FROM caches WHERE cache_id = ?', [cacheId]);
   if (!existing || existing.user_id !== userId) return null;
 
   const sets = [], vals = [];
@@ -350,17 +351,17 @@ export async function ocUpdateCache(cacheId, userId, fields) {
 // ── Ownership & status ────────────────────────────────────────────────
 
 export async function ocGetCacheIdByWp(wp) {
-  const [[r]] = await pool.query('SELECT cache_id FROM caches WHERE wp_oc = ?', [wp]);
+  const [r] = await pool.query('SELECT cache_id FROM caches WHERE wp_oc = ?', [wp]);
   return r ? Number(r.cache_id) : null;
 }
 
 export async function ocIsCacheOwner(cacheId, userId) {
-  const [[row]] = await pool.query('SELECT user_id FROM caches WHERE cache_id = ?', [cacheId]);
+  const [row] = await pool.query('SELECT user_id FROM caches WHERE cache_id = ?', [cacheId]);
   return row && row.user_id === userId;
 }
 
 export async function ocGetCacheLogpw(cacheId) {
-  const [[row]] = await pool.query('SELECT logpw FROM caches WHERE cache_id = ?', [cacheId]);
+  const [row] = await pool.query('SELECT logpw FROM caches WHERE cache_id = ?', [cacheId]);
   return row ? (row.logpw || '') : '';
 }
 

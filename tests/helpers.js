@@ -41,7 +41,3 @@ export async function cleanup(userId, cacheId) {
     await pool.query('DELETE FROM user WHERE user_id = ?', [userId]);
   }
 }
-
-export async function closePool() {
-  await pool.end();
-}

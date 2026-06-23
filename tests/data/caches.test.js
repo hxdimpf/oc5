@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { createTestUser, createTestCache, cleanup, closePool } from '../helpers.js';
+import { createTestUser, createTestCache, cleanup } from '../helpers.js';
 import {
   ocGetCacheDetail, ocGetCacheCounts, ocGetCacheForEdit,
   ocSearchCachesByBounds, ocSearchCachesByKeyword,
@@ -19,7 +19,6 @@ describe('caches', () => {
 
   after(async () => {
     await cleanup(user.id, cache.id);
-    await closePool();
   });
 
   // ── Detail ──────────────────────────────────────────────────────────
