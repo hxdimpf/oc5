@@ -1,5 +1,5 @@
 import pool from '../db.js';
-import { fmtDate, decimalToDm, buildWaypointRow, LOG_TYPES, allowedLogTypes } from './shared.js';
+import { fmtDate, coords2Dm, buildWaypointRow, LOG_TYPES, allowedLogTypes } from './shared.js';
 import { ocGetLogsForCache } from './logs.js';
 import { ocGetWaypointsByCacheId } from './waypoints.js';
 
@@ -236,9 +236,9 @@ export async function ocGetCacheDetail(wp, userId) {
       countryCode: c.country || '',
     },
     postedCoordinates: { latitude: Number(c.latitude), longitude: Number(c.longitude) },
-    postedCoordsFmt: decimalToDm(Number(c.latitude), Number(c.longitude)),
+    postedCoordsFmt: coords2Dm(Number(c.latitude), Number(c.longitude)),
     correctedCoordinates: c.has_cc ? { latitude: Number(c.cc_lat || 0), longitude: Number(c.cc_lon || 0) } : null,
-    correctedCoordsFmt: c.has_cc ? decimalToDm(Number(c.cc_lat), Number(c.cc_lon)) : '',
+    correctedCoordsFmt: c.has_cc ? coords2Dm(Number(c.cc_lat), Number(c.cc_lon)) : '',
     placedDateFmt: fmtDate(c.date_hidden),
     publishedDate: fmtDate(c.date_created), publishedDateFmt: fmtDate(c.date_created),
     isOcOnly: !!c.is_oc_only, isArchived: c.status_id === 3, isDisabled: c.status_id === 2,

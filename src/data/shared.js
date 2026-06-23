@@ -1,14 +1,10 @@
 import pool from '../db.js';
 
-// ── Coordinate & date helpers ──────────────────────────────────────────
+// ── Coordinate helpers (single source: oc-frontend/shared/coords.js) ──
 
-export function decimalToDm(lat, lon) {
-  const ns = lat < 0 ? 'S' : 'N', ew = lon < 0 ? 'W' : 'E';
-  const alat = Math.abs(lat), alon = Math.abs(lon);
-  const latDeg = Math.floor(alat), lonDeg = Math.floor(alon);
-  const latMin = (alat - latDeg) * 60, lonMin = (alon - lonDeg) * 60;
-  return `${ns}${String(latDeg).padStart(2,'0')} ${latMin.toFixed(3).padStart(6,'0')} ${ew}${String(lonDeg).padStart(3,'0')} ${lonMin.toFixed(3).padStart(6,'0')}`;
-}
+export { coords2Dm } from '../../../public/_frontend/shared/coords.js';
+
+// ── Date helpers ─────────────────────────────────────────────────────
 
 export function fmtDate(d) {
   return d ? new Date(d).toISOString().slice(0, 10) : '';
@@ -43,7 +39,7 @@ export function buildWaypointRow(w) {
   return {
     latitude: lat, longitude: lon,
     location: `${lat}|${lon}`,
-    myCoords: decimalToDm(lat, lon),
+    myCoords: coords2Dm(lat, lon),
     prefix: typeName.substring(0, 2).toUpperCase(),
     typeId: w.type_id,
     type: typeName,

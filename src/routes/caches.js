@@ -2,26 +2,15 @@ import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGet
 import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGetCacheIdByWp, ocSearchCachesByKeyword, ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus, ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
 import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
 import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
-import { decimalToDm } from '../data/shared.js';
+import { coords2Dm, coords2LatLon } from '../../public/_frontend/shared/coords.js';
 
 // ── Private helpers ─────────────────────────────────────────────────────
-
-function parseCoords(str) {
-  if (!str) return null;
-  const m = str.match(/^([NS])\s*(\d+)\s+(\d+\.\d+)\s+([EW])\s*(\d+)\s+(\d+\.\d+)$/);
-  if (!m) return null;
-  let lat = parseInt(m[2]) + parseFloat(m[3]) / 60;
-  let lon = parseInt(m[5]) + parseFloat(m[6]) / 60;
-  if (m[1] === 'S') lat = -lat;
-  if (m[4] === 'W') lon = -lon;
-  return { lat, lon };
-}
 
 function parseWaypoints(json) {
   if (!json) return [];
   try {
     return JSON.parse(json).map(w => {
-      const c = parseCoords(w.coords || '');
+      const c = coords2LatLon(w.coords || '');
       return { subtype: parseInt(w.type) || 1, latitude: c ? c.lat : 0, longitude: c ? c.lon : 0, description: (w.desc || '').substring(0, 80) };
     });
   } catch { return []; }
@@ -53,13 +42,13 @@ export async function newForm(req, res) {
     if (data) {
       editCache = data.cache; editDesc = data.desc; editAttribs = data.attribIds;
       editNote = data.note; editWpts = data.wpts;
-      editCoords = decimalToDm(Number(editCache.latitude), Number(editCache.longitude));
+      editCoords = coords2Dm(Number(editCache.latitude), Number(editCache.longitude));
       editDateHidden = editCache.date_hidden ? new Date(editCache.date_hidden).toISOString().slice(0, 10) : '';
     }
   }
 
   const fromCoords = req.query.lat && req.query.lon
-    ? decimalToDm(parseFloat(req.query.lat), parseFloat(req.query.lon)) : '';
+    ? coords2Dm(parseFloat(req.query.lat), parseFloat(req.query.lon)) : '';
 
   const form = {
     name: editCache?.name || '', type: editCache?.type ? String(editCache.type) : '',
@@ -70,8 +59,8 @@ export async function newForm(req, res) {
     short_desc: editDesc?.short_desc || '', desc: editDesc?.desc || '', hints: editDesc?.hint || '',
     hidden_date: editDateHidden, log_pw: editCache?.logpw || '',
     cache_note: editNote?.description || '',
-    user_coords: editNote?.latitude ? decimalToDm(Number(editNote.latitude), Number(editNote.longitude)) : '',
-    waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({ id: w.id, type: w.subtype, coords: decimalToDm(Number(w.latitude), Number(w.longitude)), desc: w.description }))) : '[]',
+    user_coords: editNote?.latitude ? coords2Dm(Number(editNote.latitude), Number(editNote.longitude)) : '',
+    waypoints_json: editWpts?.length ? JSON.stringify(editWpts.map(w => ({ id: w.id, type: w.subtype, coords: coords2Dm(Number(w.latitude), Number(w.longitude)), desc: w.description }))) : '[]',
     tos: true, selected_attribs: editAttribs?.length ? editAttribs : [],
     publish: editCache ? 'notnow' : 'now2', activate_date: '', activate_hour: '',
   };
@@ -87,7 +76,7 @@ export async function detail(req, res) {
 export async function upsert(req, res) {
   const { name, type, size, coords, country, difficulty, terrain, date_hidden, short_desc, desc, hint, cache_note, user_coords, waypoints_json, cache_attribs, edit_id } = req.body;
   const editId = parseInt(edit_id) || 0;
-  const parsed = parseCoords(coords);
+  const parsed = coords2LatLon(coords);
 
   if (editId) {
     const wp = await ocUpdateCache(editId, req.user.id, { name, type, size, country, difficulty, terrain, date_hidden, desc, hint, short_desc, latitude: parsed?.lat, longitude: parsed?.lon });
@@ -97,7 +86,7 @@ export async function upsert(req, res) {
     if (!cacheId) return res.status(404).send('Cache not found');
 
     if (cache_note !== undefined) await ocSaveUserNoteText(cacheId, req.user.id, (cache_note || '').trim());
-    const uc = parseCoords(user_coords);
+    const uc = coords2LatLon(user_coords);
     if (uc) await ocSaveUserCoords(cacheId, req.user.id, uc.lat, uc.lon);
     const wpts = parseWaypoints(waypoints_json);
     if (wpts.length) await ocReplaceWaypoints(cacheId, wpts);
