@@ -366,6 +366,26 @@ li { margin: 0.15em 0; line-height: 1.3; }
 
 ---
 
+# If we'd started clean-slate?
+
+<style scoped>
+section { font-size: 22px; }
+li { margin: 0.15em 0; line-height: 1.3; }
+</style>
+
+*The port was deliberately conservative — same SQL, schema, frontend — to **de-risk**. That was the right call. But a green-field OC5 would bank wins we haven't taken yet — all adoptable **incrementally**:*
+
+- **TypeScript** — recover the static types PHP gave you: typed data layer, `req`/`res`, the uniCache shape. *(The honest answer to "but PHP has types.")*
+- **Type-safe SQL** — Kysely (a typed query *builder*, not an ORM) or schema-generated types: compile-time-checked queries, still readable SQL, still no ORM.
+- **Schema-first validation** — Zod instead of the homegrown `validate.js`: one schema → runtime checks **and** inferred types.
+- **Vertical slices + tests/CI from day one** — route + handler + data + test co-located per feature; a real test DB.
+
+> **Deliberately kept:** the legacy schema, `sys_sessions` auth, the Twig-derived frontend — parity with OC4 is the point. Clean-slate ≠ rewrite-everything.
+
+🗣 *Talk track: "Porting was the safe on-ramp. The clean-slate 'better' is basically TypeScript + the tooling around it — and we can adopt it gradually, now that we're on the platform. Nothing about the port blocks getting there."*
+
+---
+
 # Decision framing
 
 The architecture is **not** the variable. Both stacks are:
