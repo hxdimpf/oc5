@@ -259,7 +259,7 @@ function — a decision you already made and we kept."*
 ```
 
 **OC5** `views/caches/detail.njk` — *generated from that Twig*
-```njk
+```twig
 {% extends 'base.njk' %}
 {% block after_body_start %}
   <script>window.uniCacheWP = {{ cache_json | safe }};</script>
@@ -274,6 +274,11 @@ the .njk from your .twig and the frontend is untouched."*
 
 # What's genuinely different
 
+<style scoped>
+table { font-size: 20px; line-height: 1.25; }
+th, td { padding: 2px 10px; }
+</style>
+
 | | OC4 — Symfony | OC5 — Express |
 |---|---|---|
 | Wiring | DI container, autowiring | explicit `import` |
@@ -284,10 +289,7 @@ the .njk from your .twig and the frontend is untouched."*
 | Boot model | container compiled per deploy | one long-lived process |
 | Observability | Symfony Profiler / Monolog | `traced()` flight recorder ring buffers |
 
-🗣 *Talk track: "These are real differences, but they're **mechanics**, not
-architecture. The biggest mindset shift is async/await and a long-running process
-vs. PHP's per-request workers — worth a dedicated session, but it doesn't change
-how you lay out a feature."*
+🗣 *Talk track: **Mechanics, not architecture.** The one real mindset shift: async/await + a long-running process vs. PHP's per-request workers.*
 
 ---
 
@@ -362,6 +364,12 @@ Whatever you pick, the codebase will look like the codebase you already know."*
 
 # Backup — file map for the curious
 
+<style scoped>
+table { font-size: 19px; line-height: 1.2; }
+th, td { padding: 2px 8px; }
+code { font-size: 0.92em; }
+</style>
+
 | Layer | OC4 | OC5 |
 |---|---|---|
 | Routing/controller | `src/Controller/App/CachesController.php` | `src/routes/caches.js` |
@@ -372,8 +380,7 @@ Whatever you pick, the codebase will look like the codebase you already know."*
 | Template | `templates/app/caches/detail.html.twig` | `views/caches/detail.njk` |
 | Wiring | `config/services.php` | `app.js` imports + `app.use()` |
 
-*(OC4 paths/line numbers were mapped by code exploration — worth a 2-minute sanity
-check against the live repo before presenting.)*
+*(OC4 paths were mapped by code exploration — sanity-check them against the live repo before presenting.)*
 
 ---
 
