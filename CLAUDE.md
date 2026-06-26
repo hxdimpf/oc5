@@ -3,7 +3,7 @@
 ## Context
 
 This is the Node.js rewrite of opencaching.de. Read the architecture doc first:
-https://github.com/hxdimpf/OC/blob/dev-hx/docs/architecture.md
+https://github.com/hxdimpf/oc/blob/dev-hx/docs/architecture.md
 
 ## Rules
 
@@ -19,10 +19,10 @@ https://github.com/hxdimpf/OC/blob/dev-hx/docs/architecture.md
 
 | Repo | Path | Role |
 |------|------|------|
-| hxdimpf/OC | ~/src/oc | Playbook, scripts, docs |
+| hxdimpf/oc | ~/src/oc | Playbook, scripts, docs |
 | hxdimpf/oc5 | ~/src/oc5 | This repo — Node.js |
-| hxdimpf/OC4 | ~/src/oc4 | PHP/Symfony — canonical Twig templates |
-| hxdimpf/OC3 | ~/src/oc3 | Legacy PHP |
+| hxdimpf/oc4 | ~/src/oc4 | PHP/Symfony — canonical Twig templates |
+| hxdimpf/oc3 | ~/src/oc3 | Legacy PHP |
 
 ## Architecture
 
