@@ -346,6 +346,26 @@ ecosystem fit, because — as we just saw — the architecture is a wash."*
 
 ---
 
+# Why switch horses, really?
+
+<style scoped>
+section { font-size: 22px; }
+li { margin: 0.15em 0; line-height: 1.3; }
+</style>
+
+*The architecture is a wash — so the case isn't technical. It's about **people and longevity**.*
+
+- **Hire the next generation** — JS/TS is the biggest, youngest talent pool; far easier to recruit and keep than Symfony veterans.
+- **One language, front to back** — the frontend is already JS; no PHP↔JS context-switch, and code is shared (`coords.js` runs in both).
+- **Low barrier to entry** — tiny surface, no DI container / bundles / Doctrine; a newcomer ships a feature in an afternoon.
+- **Sustainability** — bet on the stack the next maintainers know; shrink the bus-factor as Symfony ages out of the volunteer pool.
+- **Lighter to run** — one long-lived process, small Alpine container, less per-request overhead than PHP-FPM.
+- **Cheap to switch** — same DB, SQL, uniCache; capture the upside *without* re-architecting.
+
+> **The point:** not "Node is better" — it's the same app. It's easier to **staff, start, and sustain**. For a community project, that *is* the benefit.
+
+---
+
 # Decision framing
 
 The architecture is **not** the variable. Both stacks are:
