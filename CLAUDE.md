@@ -31,13 +31,23 @@ Express 5 → Nunjucks templates → pool.query(sql) → MariaDB
          → cookie auth (ocdevelopmentdata → sys_sessions)
 ```
 
-- `app.js` — server, routes, i18n, Nunjucks filters (`format`, `number_format`, `range`)
+- `app.js` — **composition root only**: middleware stack, i18n + Nunjucks setup,
+  feature-router mounts, 404/error handlers. Contains no route handlers.
+- `src/routes/` — feature modules, each a self-contained `express.Router()`
+  (index, auth, caches, user, maps, geocode, site, backoffice). Handlers are thin
+  exported functions; the router at the bottom of each file declares their paths.
+  Copy `src/routes/_template.js` to add a feature.
+- `src/middleware/` — reusable route guards (`requireLogin`, `requireRole`).
+- `src/data/` — all SQL (`pool.query`). Route handlers never query directly.
 - `src/db.js` — MariaDB connection pool
-- `src/auth.js` — cookie → session validation
-- `src/ocapi.js` — all SQL queries (~500 lines)
-- `src/routes/` — 5 route modules (caches, user, search, index, geocode)
-- `public/templates/nunjucks/` — 24 .njk templates (derived from OC4 Twig)
+- `src/auth.js` — cookie → session validation; sets `req.user`
+- `public/templates/nunjucks/` — .njk templates (derived from OC4 Twig)
 - `public/_frontend/` — git submodule (shared JS/CSS/vendor)
+
+**Adding routes:** see `CONVENTIONS.md`. The rule: edit a feature file in
+`src/routes/` (handler + one `router.METHOD(path, handler)` line); add a single
+`app.use(...)` mount in `app.js` only for a brand-new feature file. Never put a
+handler or SQL in `app.js`.
 
 ## Test server
 

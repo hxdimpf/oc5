@@ -1,8 +1,8 @@
-import { TabulatorFull as Tabulator } from '/_frontend/vendor/tabulator/tabulator_esm.min.js';
+import { TabulatorFull as Tabulator } from '/vendor/tabulator/tabulator_esm.min.js';
 import { loadCss } from './loadAsset.js';
 
 export async function init() {
-    await loadCss('/_frontend/vendor/tabulator/tabulator.min.css');
+    await loadCss('/vendor/tabulator/tabulator.min.css');
 
     const tableData = [
         {id:1, name:"Oli Bob", age:"12", col:"red", dob:""},

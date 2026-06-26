@@ -5,7 +5,7 @@
  * searchcaches.js — search-caches page module.
  ***************************************************************************/
 
-import { TabulatorFull as Tabulator } from '/_frontend/vendor/tabulator/tabulator_esm.min.js';
+import { TabulatorFull as Tabulator } from '/vendor/tabulator/tabulator_esm.min.js';
 import { searchCaches } from './cacheApi.js';
 import { findCity } from './mapApi.js';
 import { initPageMap } from './pageMap.js';

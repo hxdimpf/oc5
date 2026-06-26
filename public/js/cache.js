@@ -22,8 +22,8 @@
  *   - If user has no own log: directly in mode='newLog'; checkbox hidden.
  ***************************************************************************/
 
-import { TabulatorFull as Tabulator } from '/_frontend/vendor/tabulator/tabulator_esm.min.js';
-import { coords2Dm, coords2LatLon } from '../shared/coords.js';
+import { TabulatorFull as Tabulator } from '/vendor/tabulator/tabulator_esm.min.js';
+import { coords2Dm, coords2LatLon } from '../lib/coords.js';
 import { initPageMap } from './pageMap.js';
 import { apiFetch } from './helpers.js';
 import { t } from './i18n.js';
@@ -407,7 +407,7 @@ function createWPTable() {
 
   const wps = gc.additionalWaypoints.map(wp => {
     const [lat, lon] = (wp.location || '').split('|');
-    const png = subtypeToPng[wp.typeId] ? `/_frontend/images/waypoints/${subtypeToPng[wp.typeId]}` : '';
+    const png = subtypeToPng[wp.typeId] ? `/images/waypoints/${subtypeToPng[wp.typeId]}` : '';
     return {
       myCoords: lat && lon ? coords2Dm(Number(lat), Number(lon)) : '',
       prefix:   wp.type?.substring(0, 2)?.toUpperCase() || '',

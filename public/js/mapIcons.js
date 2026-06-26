@@ -76,7 +76,7 @@ export function getWaypointIcon(subtype) {
   if (!wt) return null;
   if (waypointIcons[subtype]) return waypointIcons[subtype];
   waypointIcons[subtype] = L.icon({
-    iconUrl:       `/_frontend/images/waypoints/${wt.png}`,
+    iconUrl:       `/images/waypoints/${wt.png}`,
     iconSize:      [42, 42],
     iconAnchor:    [17, 31],
     popupAnchor:   [0, -31],

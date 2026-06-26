@@ -14,6 +14,13 @@ export async function ocSearchUsers(q) {
   );
 }
 
+/** Home coordinates for a user, or null when unset (0/0) or unknown. */
+export async function ocGetUserHomeCoords(userId) {
+  const [user] = await pool.query('SELECT latitude, longitude FROM user WHERE user_id = ?', [userId]);
+  if (!user || (user.latitude === 0 && user.longitude === 0)) return null;
+  return { lat: user.latitude, lon: user.longitude };
+}
+
 export async function ocGetUserProfile(userId) {
   const [user] = await pool.query('SELECT * FROM user WHERE user_id = ?', [userId]);
   if (!user) return null;

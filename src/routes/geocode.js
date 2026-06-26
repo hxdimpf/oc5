@@ -1,3 +1,8 @@
+import { Router } from 'express';
+
+// ── Handlers ──────────────────────────────────────────────────────────────
+
+/** GET /api/geocode/city?q= — proxy city search to OSM Nominatim. */
 export async function ocGetGeocodeCity(req, res) {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);
@@ -7,3 +12,10 @@ export async function ocGetGeocodeCity(req, res) {
     res.json(await data.json());
   } catch { res.json([]); }
 }
+
+// ── Routes ────────────────────────────────────────────────────────────────
+
+const router = Router();
+router.get('/api/geocode/city', ocGetGeocodeCity);
+
+export default router;

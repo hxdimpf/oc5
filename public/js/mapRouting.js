@@ -11,7 +11,7 @@
 // https://opensource.org/licenses/MIT
 // --------------------------------------------------------------
 
-import { coords2Dm } from '../shared/coords.js';
+import { coords2Dm } from '../lib/coords.js';
 import { showToast, downloadFile } from './helpers.js';
 import { generateTrackGPX } from './gpx.js';
 import { MapButtonControl } from './mapHelpers.js';

@@ -1,8 +1,8 @@
 import pool from '../db.js';
 
-// ── Coordinate helpers (shared with frontend via public/shared/coords.js) ──
+// ── Coordinate helpers (shared with frontend via public/lib/coords.js) ──
 
-import { coords2Dm } from '../../public/shared/coords.js';
+import { coords2Dm } from '../../public/lib/coords.js';
 export { coords2Dm };
 
 // ── Date helpers ─────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
  *   parse input → call data function(s) → render/respond.
  *
  * All data access lives in src/data/ (caches.js, logs.js, waypoints.js, lookups.js).
- * Coordinate utilities are shared with the frontend via oc-frontend/shared/coords.js.
+ * Coordinate utilities are shared with the frontend via public/lib/coords.js.
  *
  * Route table (registered in app.js):
  *
@@ -32,11 +32,12 @@
  *     POST /api/cache/:wp/logpw  → saveLogpw
  */
 
+import { Router } from 'express';
 import { ocGetCacheTypes, ocGetCacheSizes, ocGetCountries, ocGetLanguages, ocGetAllAttributes, ocGetWaypointTypes } from '../data/lookups.js';
 import { ocGetCacheDetail, ocGetCacheForEdit, ocInsertCache, ocUpdateCache, ocGetCacheIdByWp, ocSearchCachesByKeyword, ocIsCacheOwner, ocGetCacheLogpw, ocUpdateCacheStatus, ocSearchCachesByBounds, ocCountCachesInBounds } from '../data/caches.js';
 import { ocInsertLog, ocGetLogById, ocUpdateLog, ocDeleteLog, ocCountDuplicateLogs } from '../data/logs.js';
 import { ocGetWaypointsByWp, ocReplaceWaypoints, ocSaveUserNoteText, ocSaveUserCoords, ocSaveLogPassword } from '../data/waypoints.js';
-import { coords2Dm, coords2LatLon } from '../../public/shared/coords.js';
+import { coords2Dm, coords2LatLon } from '../../public/lib/coords.js';
 import { validate } from '../validate.js';
 import { fail } from '../errors.js';
 
@@ -454,3 +455,31 @@ export async function saveLogpw(req, res) {
     res.json(await ocSaveLogPassword(cacheId, req.user.id, v.values.logpw || ''));
   });
 }
+
+// ── Routes ──────────────────────────────────────────────────────────────
+
+const router = Router();
+
+// HTML pages
+router.get ('/caches',                  searchPage);
+router.get ('/cache/new',               newForm);    // before /cache/:wp
+router.post('/cache/new',               upsert);
+router.get ('/cache/:wp',               detail);
+
+// JSON API — cache data
+router.get ('/api/cache/:wp',           get);
+router.get ('/api/caches/search',       search);
+router.get ('/api/caches/live',         live);
+router.get ('/api/caches/waypoints',    waypoints);
+
+// JSON API — logs (auth enforced inside handlers via requireAuth)
+router.post  ('/api/cache/:wp/log',         createLog);
+router.put   ('/api/cache/:wp/log/:logId',  updateLog);
+router.delete('/api/cache/:wp/log/:logId',  deleteLog);
+
+// JSON API — user data
+router.post('/api/cache/:wp/note',   saveNote);
+router.post('/api/cache/:wp/coords', saveCoords);
+router.post('/api/cache/:wp/logpw',  saveLogpw);
+
+export default router;

@@ -1,4 +1,4 @@
-import { TabulatorFull as Tabulator } from '/_frontend/vendor/tabulator/tabulator_esm.min.js';
+import { TabulatorFull as Tabulator } from '/vendor/tabulator/tabulator_esm.min.js';
 import { t } from './i18n.js';
 import { apiFetch } from './helpers.js';
 
