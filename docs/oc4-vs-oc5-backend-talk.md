@@ -4,6 +4,13 @@ title: OC4 vs OC5 — Backend, Side by Side
 paginate: true
 ---
 
+<!-- Deck-wide styling: keep dense code/SQL slides inside the frame -->
+<style>
+section { font-size: 26px; }
+pre { font-size: 16px; line-height: 1.25; margin: 0.4em 0; }
+h1 { margin-bottom: 0.3em; }
+</style>
+
 # OC4 → OC5
 ## The same backend, in a different language
 
@@ -53,6 +60,12 @@ Same five stops: **route → controller → data → shape → render.**
 
 # The construct map
 
+<style scoped>
+section { font-size: 23px; }
+table { font-size: 18px; line-height: 1.2; }
+th, td { padding: 1px 10px; }
+</style>
+
 | Concern | OC4 — Symfony | OC5 — Express |
 |---|---|---|
 | Front controller | `public/index.php` + `Kernel` | `app.js` (composition root) |
@@ -69,8 +82,7 @@ Same five stops: **route → controller → data → shape → render.**
 | Auth | custom `Auth` service (cookie → session) | `auth` middleware → `req.user` |
 | Templating | Twig `*.html.twig` | Nunjucks `*.njk` (generated from Twig) |
 
-🗣 *Talk track: "Pin this slide. Every row is a 1:1 swap. For the rest of the talk
-we walk down the left column and show the right column right next to it."*
+🗣 *Talk track: Pin this — every row is a 1:1 swap; the rest of the talk walks the left column with the right beside it.*
 
 ---
 
@@ -162,9 +174,7 @@ export async function get(req, res) {
 }
 ```
 
-🗣 *Talk track: "OC4 spreads gather-then-build across the controller + several
-repositories + a UniCacheBuilder service. OC5 folds the same work into one data
-function. Different packaging, identical result — a uniCache object."*
+🗣 *Talk track: Same gather-then-build — OC5 just folds it into one data function.*
 
 ---
 
@@ -194,10 +204,7 @@ export const ocGetCacheDetail = traced('ocGetCacheDetail', async (wp, userId) =>
       WHERE c.wp_oc = ? GROUP BY c.cache_id`, [userId, userId, userId, wp]);
 ```
 
-🗣 *Talk track: "This is the punchline. **Neither side uses an ORM.** OC4 chose
-Doctrine DBAL — hand-written SQL via a QueryBuilder. OC5 writes the same SQL as a
-template string. Parameter binding both sides (`:wp` → `?`). Look how similar the
-next slide makes it."*
+🗣 *Talk track: The punchline — **neither side uses an ORM**: same SQL, both bind params.*
 
 ---
 
