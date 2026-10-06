@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireLogin } from '../middleware/auth.js';
-import { ocSearchUsers, ocGetUserProfile } from '../data/users.js';
+import { ocSearchUsers, ocGetUserProfile, ocGetUserHomeCoords } from '../data/users.js';
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -10,6 +10,11 @@ export async function apiSearch(req, res) {
   if (!q) return res.json({ items: [] });
   const rows = await ocSearchUsers(q);
   res.json({ items: rows.map(r => ({ userId: r.user_id, username: r.username, findCount: r.find_count, hideCount: r.hide_count, profileUrl: `/user/profile/${r.user_id}` })) });
+}
+
+/** GET /api/user/home — logged-in user's home coordinates { lat, lon }, or null. */
+export async function apiHome(req, res) {
+  res.json(req.user.id ? await ocGetUserHomeCoords(req.user.id) : null);
 }
 
 /** GET /user/profile/:id — public user profile page. */
@@ -46,6 +51,7 @@ const router = Router();
 // Public
 router.get('/user',              searchPage);
 router.get('/api/users/search',  apiSearch);
+router.get('/api/user/home',     apiHome);
 router.get('/user/profile/:id',  profile);
 
 // Logged-in dashboard

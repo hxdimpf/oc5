@@ -44,8 +44,6 @@ export async function initPageMap(cacheWPs) {
   mapEl.style.height = window.innerHeight + 'px';
   mapEl.classList.add('page-map-active');
 
-  window.uniCacheWP = cacheWPs;
-
   try {
     if (!_mod) {
       _mod = await import('./map.js');
@@ -59,7 +57,7 @@ export async function initPageMap(cacheWPs) {
     // toggle triggers Leaflet's deferred invalidation and causes a view jump.
     _mod.getMyMap().invalidateSize({ pan: false });
 
-    await _mod.handleWPs();
+    await _mod.handleWPs(cacheWPs);
 
     // When live mode is disabled any residual Leaflet re-centre can shift the
     // scroll position slightly.  Snap back to the map so the user stays put.

@@ -45,7 +45,7 @@ app.use('/js',      express.static(path.join(__dirname, 'public/js')));
 app.use('/css',     express.static(path.join(__dirname, 'public/css')));
 app.use('/vendor',  express.static(path.join(__dirname, 'public/vendor')));
 app.use('/images',  express.static(path.join(__dirname, 'public/images')));
-app.use('/shared',  express.static(path.join(__dirname, 'public/shared')));
+app.use('/lib',     express.static(path.join(__dirname, 'public/lib')));
 app.use('/docs',    express.static(path.join(__dirname, 'public/docs')));
 app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'public/favicon.ico')));
 

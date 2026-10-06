@@ -34,18 +34,6 @@
 <script>Object.assign(window.OCI18n, {{ i18n_json | safe }});</script>
 {% endblock %}
 
-{% block after_body_start %}
-<script>
-    window.uniCacheWP = [];
-    (function() {
-        var p = new URLSearchParams(location.search);
-        window.lat         = p.has('lat')  ? parseFloat(p.get('lat'))  : {{ initLat }};
-        window.lon         = p.has('lon')  ? parseFloat(p.get('lon'))  : {{ initLon }};
-        window.defaultZoom = p.has('zoom') ? parseInt(p.get('zoom'))   : {{ initZoom }};
-    })();
-</script>
-{% endblock %}
-
 {% block page_content %}
 <div id="mapRoot"></div>
 {% endblock %}

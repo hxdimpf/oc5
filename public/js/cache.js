@@ -529,10 +529,7 @@ async function handleSaveCoords() {
     // Update map marker position and icon
     console.log('CC save: mapHandleWPs=', mapHandleWPs, 'mapUpdateMarkerIcon=', mapUpdateMarkerIcon, 'gc.lat=', gc.lat, 'gc.lon=', gc.lon, 'hasCC=', gc.hasCC);
     if (mapHandleWPs) {
-      window.uniCacheWP = [gc];
-      window.lat = gc.lat;
-      window.lon = gc.lon;
-      try { await mapHandleWPs(); } catch(e) { console.log('mapHandleWPs threw:', e); }
+      try { await mapHandleWPs([gc]); } catch(e) { console.log('mapHandleWPs threw:', e); }
     }
     if (mapUpdateMarkerIcon) {
       try { mapUpdateMarkerIcon(gc.referenceCode, { hasCC: gc.hasCC, hasPCN: gc.hasPCN }); } catch(e) { console.log('mapUpdateMarkerIcon threw:', e); }
@@ -1057,11 +1054,9 @@ async function deleteLog(log) {
 // initMap() — feed this cache into the already-loaded map module and call handleWPs.
 //
 // loader.js has imported map.js (side effects: map, controls, registries set up).
-// handleWPs() reads window.uniCacheWP — push the cooked cache in and call it.
+// initPageMap() hands the cooked cache to handleWPs().
 
 async function initMap() {
-  window.lat = gc.lat;
-  window.lon = gc.lon;
   const m = await initPageMap([gc]);
   if (m) {
     mapHandleWPs        = m.handleWPs;

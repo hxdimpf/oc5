@@ -21,6 +21,20 @@ export async function findCity(q) {
 }
 
 // ---------------------------------------------------------------
+// Home coordinates of the logged-in user → /api/user/home.
+// Returns { lat, lon }, or null when anonymous, unset, or on error.
+
+export async function getHomeCoords() {
+  try {
+    const home = await apiFetch('/api/user/home');
+    return home?.lat && home?.lon ? home : null;
+  } catch (err) {
+    console.log('getHomeCoords:', err);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------
 // Live viewport caches → /api/caches/live.
 //
 // Signature: (s, w, n, e, skip, take, filter)

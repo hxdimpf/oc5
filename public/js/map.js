@@ -29,6 +29,11 @@ import {
 
 const mapRoot = L.map('mapRoot', { zoomControl: false });
 
+// Map state, handed in by page modules via handleWPs() — templates inject
+// no globals. staticWPs are the uniCacheWP objects shown as static markers.
+let staticWPs   = [];
+let defaultZoom = 13; // zoom level 13: at this height we go live
+
 //-------------------------
 // ScrollTopControl — must be registered FIRST, before all other controls
 //
@@ -198,8 +203,6 @@ if (document.body.dataset.page === 'livemap') {
       url.searchParams.set('lon', c.lng.toFixed(5));
       url.searchParams.set('zoom', mapRoot.getZoom());
       history.replaceState(null, '', url);
-      window.lat = c.lat;
-      window.lon = c.lng;
     }, 250);
   });
 }
@@ -549,18 +552,21 @@ function fetchAndShowLiveMarkers() {
 // 3. in the ALC Player's "Search" Function
 //
 // Please note: handleWPs() must also be called in order to trigger the live map
-// functionality. In the case of a live map only, we may not have anything in uniCacheWP.
+// functionality. In the case of a live map only, wps is empty and view says
+// where to start.
 //
-// Note: handleWPs is in global namespace and operates on a global object named uniCacheWP
-// uniCacheWP is provided by the backend via handlebars template expansion.
+//   wps  — array of uniCacheWP objects to show as static markers
+//   view — { lat, lon, zoom? } initial view, used when wps is empty
 
-export async function handleWPs() {
+export async function handleWPs(wps = [], view = null) {
+  staticWPs = wps;
+  if (view?.zoom) defaultZoom = view.zoom;
 
   document.getElementById('mapRoot').style.height = getViewportHeight() + 'px';
 
-  if (!uniCacheWP?.length) { // in livemap we don't have static markers, however we got lat, lng
-    if (typeof lat !== 'undefined' && typeof lon !== 'undefined' && lat && lon) {
-      mapRoot.setView([lat, lon], defaultZoom); // zoom level 13: at this height we go live
+  if (!staticWPs.length) { // in livemap we don't have static markers, however we got a view
+    if (view?.lat && view?.lon) {
+      mapRoot.setView([view.lat, view.lon], defaultZoom);
       if (!mapRoot.hasLayer(liveMap)) {
         liveMap.addTo(mapRoot);                 // Initial add triggers overlayadd event which fetches markers
       } else {
@@ -605,7 +611,7 @@ async function initStaticMarkers() {
   foundMarkers.clearLayers();
   notfoundMarkers.clearLayers();
 
-  for (const p of uniCacheWP) {
+  for (const p of staticWPs) {
     const m = createMarker(p);
     if (!m) continue;
 
