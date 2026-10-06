@@ -19,10 +19,10 @@ https://github.com/hxdimpf/oc/blob/dev-hx/docs/architecture.md
 
 | Repo | Path | Role |
 |------|------|------|
-| hxdimpf/oc | ~/src/oc | Playbook, scripts, docs |
-| hxdimpf/oc5 | ~/src/oc5 | This repo — Node.js |
-| hxdimpf/oc4 | ~/src/oc4 | PHP/Symfony — canonical Twig templates |
-| hxdimpf/oc3 | ~/src/oc3 | Legacy PHP |
+| hxdimpf/oc | ~/src/opencaching/oc | Playbook, scripts, docs |
+| hxdimpf/oc5 | ~/src/opencaching/oc5 | This repo — Node.js |
+| hxdimpf/oc4 | ~/src/opencaching/oc4 | PHP/Symfony — canonical Twig templates |
+| hxdimpf/oc3 | ~/src/opencaching/oc3 | Legacy PHP |
 
 ## Architecture
 
